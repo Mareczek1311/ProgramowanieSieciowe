@@ -8,44 +8,67 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <string.h>
 
+//Powinienem sprobowac rozwiazania z structurą vector zamiast z dynamicznymi tablicami
 
 //sprawdzic czy jest katalogiem jak jest to d jak nie to -
 
 //Utworzenie macierzy charow  
 
-void print_permissions(mode_t mode) {
-    char perms[] = "drwxrwxrwx"; 
+//Sformatowanie wszystkich danych na tablice charow
+
+int numOfRows(){
+    DIR* dirp;
+    struct dirent* dp;
+    int rows = 0;
+
+    dirp = opendir("./");
+
+    if (dirp == NULL) {
+        perror("opendir");
+        exit(EXIT_FAILURE);
+    }
+    while ((dp = readdir(dirp)) != 0) {
+        rows++;
+    }
+    closedir(dirp);
+
+    return rows;
+}
+
+char* init_permissions(mode_t mode) {
+    char* res = (char*)malloc(strlen("drwxrwxrwx") + 1);
+    strcpy(res, "drwxrwxrwx");
+
     for (int i = 1; i < 10; i++) {
         if (!(mode & (1 << (8 - i)))) {
-            perms[i] = '-';
+            res[i] = '-';
         }
     }
 
-
     if(mode >> 11 == 16){
-        perms[0] = '-';
+        res[0] = '-';
     }
     if(S_ISLNK(mode)){
-        perms[0] = 'l';
-
+        res[0] = 'l';
     }
 
-    printf("%s", perms);
+  
+    //printf("%s \n" , res);
+    return res;
+
 }
-
-
-//smiec funkcja raczej
-void FormatText(int num){
+//funkcja dla formatowania liczb w tablice
+char* FormatText(int num){
     char str[20];
     char place[20];
     int length = 0;
     sprintf(str, "%d", num);
-    printf("%s \n", str);
 
     for(int i=0; i<20; i++){
         if(str[i] != '\0'){
-            printf("%c \n", str[i]);
+            //printf("%c \n", str[i]);
             length ++;
         }
         else{
@@ -53,14 +76,81 @@ void FormatText(int num){
         }
     }
 
-    for(int i=0; i<20; i++){
+    char* res = (char*)malloc(length * sizeof(char));
 
+    for(int i=0; i<length; i++){
+        res[i] = str[i];
     }
 
+    return res;
 }
 
+char*** initializeStructure(int rows){
+    char*** structure = (char ***)malloc(rows * sizeof(char **));
 
+    for(int i=0; i<rows; i++){
+        structure[i] = (char**) malloc(9 * sizeof(char*));
+    }
 
+    return structure;
+}
+
+char* init_time(struct stat st){
+    char buffer[1024];
+    int length=0;
+    time_t mod_time = st.st_mtimespec.tv_sec;
+
+    strftime(buffer, sizeof(buffer), "%m-%d %H:%M", localtime(&mod_time));
+
+    //printf("%s ", buffer);
+
+    while(buffer[length] != '\0'){
+        length++;
+    }
+
+    char* res = (char*) malloc(length * sizeof(char));
+
+    for(int i=0; i<length; i++){
+        res[i] = buffer[i];
+    }
+
+    return res;
+}
+
+char* init_link(struct stat st, struct dirent* dp){
+    if(!S_ISLNK(st.st_mode)){
+        return NULL;
+    }
+
+    char buffer[1024];
+    ssize_t link_string_length;
+    if((link_string_length = readlink(dp->d_name, buffer, link_string_length)) == -1){
+        perror("readlink");
+    }
+    else{
+        buffer[link_string_length] = '\0';
+        //printf(" -> %s ", buffer);
+    }
+
+    char* res = (char*) malloc(link_string_length * sizeof(char));
+
+    for(int i=0; i<link_string_length; i++){
+        res[i] = buffer[i];
+    } 
+
+    return res;
+}
+
+void clearData(char*** matrix, int x, int y){
+    for (int i = 0; i < x; i++) {
+        for (int j = 0; j < y; j++) {
+            free(matrix[i][j]);
+        }
+        free(matrix[i]);
+    }
+    free(matrix);
+
+}
 
 int main(int argc, char* argv[]) {
     //Deklaracja zmiennych
@@ -69,9 +159,11 @@ int main(int argc, char* argv[]) {
     struct stat st;
     struct passwd* pw;
     struct group* gr;
-    char buffer[1024];
-    char buffer2[1024];
-    ssize_t link_string_length;
+    int line = 0;
+
+    int rows = numOfRows();
+
+    char*** lines = initializeStructure(rows);
 
     //Otworzenie katalogu ./
     dirp = opendir("./");
@@ -79,7 +171,7 @@ int main(int argc, char* argv[]) {
     //Kontrola bledow
     if (dirp == NULL) {
         perror("opendir");
-        return 1;
+        exit(EXIT_FAILURE);
     }
 
     while ((dp = readdir(dirp)) != 0) {
@@ -88,46 +180,57 @@ int main(int argc, char* argv[]) {
         //uzywam lstat bo lstat daje informacje ze plik jest linkiem
         if (lstat(dp->d_name, &st) == -1) {
             perror("stat");
-            continue;
+            exit(EXIT_FAILURE);
         }
 
         if ((gr = getgrgid(st.st_gid)) == NULL) {
             perror("getgrgid");
-            continue;
+            exit(EXIT_FAILURE);
         }
 
         if ((pw = getpwuid(st.st_uid)) == NULL) {
             perror("getpwuid");
-            continue;
+            exit(EXIT_FAILURE);
         }
-
-        //Ustawianie czasu
-        time_t mod_time = st.st_mtimespec.tv_sec;
-
-        strftime(buffer, sizeof(buffer), "%m-%d %H:%M", localtime(&mod_time));
-
-        
-        printf("\n");
+     
         //Drukowanie informacji
-        print_permissions(st.st_mode);
-        printf(" %d ", st.st_nlink);
-        printf("%s ", pw->pw_name);
-        printf("%s ", gr->gr_name);
-        printf("%lld ", (long long)st.st_size);
-        printf("%s ", buffer);
-        printf("%s", dp->d_name);
-        if(S_ISLNK(st.st_mode)){
-            if((link_string_length = readlink(dp->d_name, buffer2, link_string_length)) == -1){
-                perror("readlink");
-            }
-            else{
-                buffer[link_string_length] = '\0';
-                printf(" -> %s ", buffer2);
-            }
 
+        char* permissions = init_permissions(st.st_mode);
+        char* link = FormatText(st.st_nlink);
+        char* userName = pw->pw_name;
+        char* groupName = gr->gr_name;
+        char* size = FormatText(st.st_size);
+        char* date = init_time(st);
+        char* fileName = dp->d_name;
+        char* fileLink = init_link(st, dp);
+
+        lines[line][0] = permissions;
+        lines[line][1] = link;
+        lines[line][2] = userName;
+        lines[line][3] = groupName;
+        lines[line][4] = size;
+        lines[line][5] = date;
+        lines[line][6] = fileName;
+        lines[line][7] = fileLink;
+        
+        line++;
+    }
+    
+    
+    for(int i=0; i < rows; i++){
+        for(int j=0; j<8; j++){
+            printf("%s  ", lines[i][j]);
         }
+        printf("\n");
     }
 
+
+
     closedir(dirp);
+
+
+
+    //clearData(lines, rows, 8);
+
     return 0;
 }

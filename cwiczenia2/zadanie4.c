@@ -10,13 +10,9 @@
 #include <unistd.h>
 #include <string.h>
 
-//Powinienem sprobowac rozwiazania z structurą vector zamiast z dynamicznymi tablicami
+//Posortowac dane po nazwie plikow
 
-//sprawdzic czy jest katalogiem jak jest to d jak nie to -
-
-//Utworzenie macierzy charow  
-
-//Sformatowanie wszystkich danych na tablice charow
+//Dodac Total na szczycie
 
 int numOfRows(){
     DIR* dirp;
@@ -152,6 +148,64 @@ void clearData(char*** matrix, int x, int y){
 
 }
 
+int sizeOfTab(char* tab){
+    int i = 0;
+
+    while(tab[i] != '\0'){
+        i++;
+    }
+
+    return i;    
+}
+
+int maxSizeInColumn(char*** matrix, int rowCount, int col){
+
+    int maxSize = sizeOfTab(matrix[0][col]);
+    int currSize;
+    
+    for(int i=1; i<rowCount; i++){
+        currSize = sizeOfTab(matrix[i][col]);
+        if(currSize > maxSize){
+            maxSize = currSize;
+        }    
+    }
+
+    return maxSize;
+}
+
+
+void printLS(char*** matrix, int* sizes, int rows){
+    int size;
+    for(int i=0; i<rows; i++){
+        for(int j=0; j<8; j++){
+            if(j<6){
+                size = sizeOfTab(matrix[i][j]);
+                for(int k=(sizes[j]-size); k>0; k--){
+                    printf(" ");
+                }
+            }
+            if(matrix[i][j])
+            {
+                if(j == 7){printf("-> ");}
+                printf("%s", matrix[i][j]);   
+            }
+            if(j<6){
+                printf("  ");
+            }
+            else{
+                printf(" ");
+            }
+        }
+        printf("\n");
+    }
+}
+
+
+void sort(){
+    //sort by filename
+}
+
+
 int main(int argc, char* argv[]) {
     //Deklaracja zmiennych
     DIR* dirp;
@@ -160,6 +214,7 @@ int main(int argc, char* argv[]) {
     struct passwd* pw;
     struct group* gr;
     int line = 0;
+    int* sizesOfCols = (int*) malloc (8 * sizeof(int));
 
     int rows = numOfRows();
 
@@ -216,16 +271,22 @@ int main(int argc, char* argv[]) {
         line++;
     }
     
-    
+    for(int i=0; i<7; i++){
+        sizesOfCols[i] = maxSizeInColumn(lines, rows, i);
+    }
+
+    printLS(lines, sizesOfCols, rows);
+
+    /*
     for(int i=0; i < rows; i++){
         for(int j=0; j<8; j++){
             printf("%s  ", lines[i][j]);
         }
         printf("\n");
     }
+    */
 
-
-
+    free(sizesOfCols);
     closedir(dirp);
 
 

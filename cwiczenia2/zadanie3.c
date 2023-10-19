@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
-    int plik, kopia, n;
+    int plik, n;
     char bufor[100];
 
     if((plik  = open(argv[1], O_RDONLY)) == -1){

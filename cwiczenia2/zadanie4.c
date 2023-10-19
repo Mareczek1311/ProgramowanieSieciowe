@@ -173,7 +173,6 @@ int maxSizeInColumn(char*** matrix, int rowCount, int col){
     return maxSize;
 }
 
-
 void printLS(char*** matrix, int* sizes, int rows){
     int size;
     for(int i=0; i<rows; i++){
@@ -200,10 +199,22 @@ void printLS(char*** matrix, int* sizes, int rows){
     }
 }
 
+void swap(char** a, char** b) { }
 
-void sort(){
-    //sort by filename
+//sort by filename
+void sort(char*** matrix, int rows){
+    for (int i = 0; i < rows - 1; i++) {
+        for (int j = 0; j < rows - i - 1; j++) {
+            if (strcmp(matrix[j][6], matrix[j + 1][6]) > 0) {
+                 char** temp = matrix[j]; 
+                 matrix[j] = matrix[j+1]; 
+                 matrix[j+1] = temp;
+            }
+        }
+    }
+
 }
+
 
 
 int main(int argc, char* argv[]) {
@@ -275,16 +286,8 @@ int main(int argc, char* argv[]) {
         sizesOfCols[i] = maxSizeInColumn(lines, rows, i);
     }
 
+    sort(lines, rows);
     printLS(lines, sizesOfCols, rows);
-
-    /*
-    for(int i=0; i < rows; i++){
-        for(int j=0; j<8; j++){
-            printf("%s  ", lines[i][j]);
-        }
-        printf("\n");
-    }
-    */
 
     free(sizesOfCols);
     closedir(dirp);

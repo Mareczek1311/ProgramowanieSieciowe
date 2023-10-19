@@ -10,9 +10,60 @@
 #include <unistd.h>
 #include <string.h>
 
-//Posortowac dane po nazwie plikow
+#include <limits.h> // Dla PATH_MAX
+#include <unistd.h> // Dla realpath
 
-//Dodac Total na szczycie
+//Drugi tryb;
+
+//naprawic komende clear!
+
+//inne formatowanie czasu
+//problem z czyszczeniem pamieci
+
+int countSubdirectories(const char *dirPath) {
+    DIR *dir;
+    struct dirent *entry;
+    int subdirectoryCount = 0;
+
+    if ((dir = opendir(dirPath)) == NULL) {
+        perror("opendir");
+        exit(EXIT_FAILURE);
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (entry->d_type == DT_DIR) {
+            if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+                subdirectoryCount++;
+            }
+        }
+    }
+
+    closedir(dir);
+
+    return subdirectoryCount;
+}
+
+long long countTotalBlocks(){
+    long long totalBlocks = 0;
+    DIR* dirp;
+    struct dirent* dp;
+    struct stat st;
+
+    dirp = opendir("./");
+
+    if (dirp == NULL) {
+        perror("opendir");
+        exit(EXIT_FAILURE);
+    }
+    while ((dp = readdir(dirp)) != 0) {
+        if(lstat(dp->d_name, &st) == 0){
+            totalBlocks += st.st_blocks;
+        }
+    }
+    closedir(dirp);
+
+    return totalBlocks;
+}
 
 int numOfRows(){
     DIR* dirp;
@@ -27,6 +78,7 @@ int numOfRows(){
     }
     while ((dp = readdir(dirp)) != 0) {
         rows++;
+        
     }
     closedir(dirp);
 
@@ -81,7 +133,7 @@ char* FormatText(int num){
     return res;
 }
 
-char*** initializeStructure(int rows){
+char*** initializeStructure_Mode0(int rows){
     char*** structure = (char ***)malloc(rows * sizeof(char **));
 
     for(int i=0; i<rows; i++){
@@ -91,10 +143,14 @@ char*** initializeStructure(int rows){
     return structure;
 }
 
-char* init_time(struct stat st){
+char** initializeStructure_Mode1(){
+    char** structure = (char **)malloc(20 * sizeof(char *));
+    return structure;
+}
+
+char* init_time(time_t mod_time){
     char buffer[1024];
     int length=0;
-    time_t mod_time = st.st_mtimespec.tv_sec;
 
     strftime(buffer, sizeof(buffer), "%m-%d %H:%M", localtime(&mod_time));
 
@@ -173,7 +229,10 @@ int maxSizeInColumn(char*** matrix, int rowCount, int col){
     return maxSize;
 }
 
-void printLS(char*** matrix, int* sizes, int rows){
+void printLS_Mode0(char*** matrix, int* sizes, int rows, long long totalBlocks){
+    
+    printf("total %lld \n", totalBlocks);
+    
     int size;
     for(int i=0; i<rows; i++){
         for(int j=0; j<8; j++){
@@ -199,9 +258,79 @@ void printLS(char*** matrix, int* sizes, int rows){
     }
 }
 
-void swap(char** a, char** b) { }
+void printLS_Mode1(char** tab){
 
-//sort by filename
+    char resolved_path[PATH_MAX];
+
+    printf("Informacje o %s \n", tab[8]);
+
+    printf("Typ pliku: ");
+    switch( tab[0][0] ){
+        case 'd':
+            printf("katalog \n");
+            break;
+        case '-':
+            printf("zwykly plik \n");
+            break;
+        case 'l':
+            printf("link \n");
+            break;
+        default:
+            printf("TYPE NOT DEFIND \n");
+
+    }
+    
+    if (realpath(tab[8], resolved_path) != NULL) {
+            printf("Sciezka: %s \n", resolved_path);
+    } else {
+        perror("Błąd");
+        exit(EXIT_FAILURE);
+    }
+    
+    //DLA LINKOW SCIEZKA
+
+
+    switch( tab[0][0] ){
+        case 'd':
+            printf("Liczba podkatalogow: %d \n", countSubdirectories(tab[8]));
+            break;
+        case '-':
+            printf("Rozmiar: %s \n", tab[4]);
+            break;
+        case 'l':
+            printf("Rozmiar: %s \n", tab[4]);
+            break;
+        default:
+            printf("TYPE NOT DEFIND \n");
+
+    }
+
+    printf("Uprawnienia: ");
+
+    printf("uzytkownik: ");
+    for(int i=1; i<4; i++){
+        if(tab[0][i] != '-'){printf("%c", tab[0][i]);}
+    }
+
+    printf(", grupa: ");
+    for(int i=4; i<7; i++){
+        if(tab[0][i] != '-'){printf("%c", tab[0][i]);}
+
+    }
+
+    printf(", inni: ");
+    for(int i=7; i<10; i++){
+        if(tab[0][i] != '-'){printf("%c", tab[0][i]);}
+    }
+    printf("\n");
+
+    printf("Ostatnio uzywany: %s \n", tab[5]);
+    printf("Ostatnio modyfikowany: %s \n", tab[6]);
+    printf("Ostatnio zmieniany stan: %s \n", tab[7]);
+    
+}
+
+//sort by filename need better sorting algorithm
 void sort(char*** matrix, int rows){
     for (int i = 0; i < rows - 1; i++) {
         for (int j = 0; j < rows - i - 1; j++) {
@@ -215,23 +344,16 @@ void sort(char*** matrix, int rows){
 
 }
 
-
-
-int main(int argc, char* argv[]) {
-    //Deklaracja zmiennych
+void lsFunction(char*** lines, char** linesMode1,int mode, char* fileName){
+ //Otworzenie katalogu ./
+    int line = 0;
+    
     DIR* dirp;
     struct dirent* dp;
     struct stat st;
     struct passwd* pw;
     struct group* gr;
-    int line = 0;
-    int* sizesOfCols = (int*) malloc (8 * sizeof(int));
 
-    int rows = numOfRows();
-
-    char*** lines = initializeStructure(rows);
-
-    //Otworzenie katalogu ./
     dirp = opendir("./");
 
     //Kontrola bledow
@@ -241,7 +363,6 @@ int main(int argc, char* argv[]) {
     }
 
     while ((dp = readdir(dirp)) != 0) {
-
         //Kontrola bledow
         //uzywam lstat bo lstat daje informacje ze plik jest linkiem
         if (lstat(dp->d_name, &st) == -1) {
@@ -259,42 +380,105 @@ int main(int argc, char* argv[]) {
             exit(EXIT_FAILURE);
         }
      
-        //Drukowanie informacji
+        if(mode == 1){
+            if(!strcmp(fileName, dp->d_name)){
+                char* permissions = init_permissions(st.st_mode);
+                char* link = FormatText(st.st_nlink);
+                char* userName = pw->pw_name;
+                char* groupName = gr->gr_name;
+                char* size = FormatText(st.st_size);
+                char* lastAccess = init_time(st.st_atimespec.tv_sec);
+                char* lastModification = init_time(st.st_mtimespec.tv_sec);
+                char* lastStatusChange = init_time(st.st_ctimespec.tv_sec);
+                char* fileName = dp->d_name;
+                char* fileLink = init_link(st, dp);
 
-        char* permissions = init_permissions(st.st_mode);
-        char* link = FormatText(st.st_nlink);
-        char* userName = pw->pw_name;
-        char* groupName = gr->gr_name;
-        char* size = FormatText(st.st_size);
-        char* date = init_time(st);
-        char* fileName = dp->d_name;
-        char* fileLink = init_link(st, dp);
+                linesMode1[0] = permissions;
+                linesMode1[1] = link;
+                linesMode1[2] = userName;
+                linesMode1[3] = groupName;
+                linesMode1[4] = size;
+                linesMode1[5] = lastAccess;
+                linesMode1[6] = lastModification;
+                linesMode1[7] = lastStatusChange;
+                linesMode1[8] = fileName;
+                linesMode1[9] = fileLink;
 
-        lines[line][0] = permissions;
-        lines[line][1] = link;
-        lines[line][2] = userName;
-        lines[line][3] = groupName;
-        lines[line][4] = size;
-        lines[line][5] = date;
-        lines[line][6] = fileName;
-        lines[line][7] = fileLink;
-        
-        line++;
+            }
+        }
+
+        //Przypisywanie informacji MODE 0
+        if(mode == 0){
+            char* permissions = init_permissions(st.st_mode);
+            char* link = FormatText(st.st_nlink);
+            char* userName = pw->pw_name;
+            char* groupName = gr->gr_name;
+            char* size = FormatText(st.st_size);
+            char* date = init_time(st.st_mtimespec.tv_sec);
+            char* fileName = dp->d_name;
+            char* fileLink = init_link(st, dp);
+
+            lines[line][0] = permissions;
+            lines[line][1] = link;
+            lines[line][2] = userName;
+            lines[line][3] = groupName;
+            lines[line][4] = size;
+            lines[line][5] = date;
+            lines[line][6] = fileName;
+            lines[line][7] = fileLink;
+            
+            line++;
+        }
     }
-    
-    for(int i=0; i<7; i++){
-        sizesOfCols[i] = maxSizeInColumn(lines, rows, i);
-    }
-
-    sort(lines, rows);
-    printLS(lines, sizesOfCols, rows);
-
-    free(sizesOfCols);
     closedir(dirp);
 
+    //FREE
+}
 
+int main(int argc, char* argv[]) {
 
-    //clearData(lines, rows, 8);
+    //Deklaracja zmiennych
+
+    //Jezeli mamy argument to tryb jest = 1
+    //jezeli nie to mamy 0
+    int mode = 0;
+
+    int* sizesOfCols = (int*) malloc (8 * sizeof(int));
+
+    long long totalBlocks = countTotalBlocks();
+    int rows = numOfRows();
+
+    char*** lines;
+    char** linesMode1;
+    
+    if(mode == 0){
+        lines = initializeStructure_Mode0(rows);
+    } 
+    else{
+        linesMode1 = initializeStructure_Mode1();
+    }     
+
+    if( argc > 1 ) { mode = 1; }
+    
+    lsFunction(lines, linesMode1, mode, argv[1]);
+
+    if(mode == 0){
+        for(int i=0; i<7; i++){
+            sizesOfCols[i] = maxSizeInColumn(lines, rows, i);
+        }
+        sort(lines, rows);
+
+        printLS_Mode0(lines, sizesOfCols, rows, totalBlocks);
+    }
+
+    if(mode == 1){
+        printLS_Mode1(linesMode1);
+    }
+
+    free(sizesOfCols);
+
+    //Trzeba to naprawic :(
+    //clearData(lines, rows, 7);
 
     return 0;
 }

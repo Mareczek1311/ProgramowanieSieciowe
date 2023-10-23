@@ -135,14 +135,9 @@ char*** initializeStructure_Mode0(int rows){
     char*** structure = (char ***)malloc(rows * sizeof(char **));
 
     for(int i=0; i<rows; i++){
-        structure[i] = (char**) malloc(9 * sizeof(char*));
+        structure[i] = (char**) malloc(11 * sizeof(char*));
     }
 
-    return structure;
-}
-
-char** initializeStructure_Mode1(){
-    char** structure = (char **)malloc(20 * sizeof(char *));
     return structure;
 }
 
@@ -258,14 +253,14 @@ void printLS_Mode0(char*** matrix, int* sizes, int rows, long long totalBlocks){
     }
 }
 
-void printLS_Mode1(char** tab){
+void printLS_Mode1(char*** tab){
 
     char resolved_path[PATH_MAX];
 
-    printf("Informacje o %s \n", tab[8]);
+    printf("Informacje o %s \n", tab[0][8]);
 
     printf("Typ pliku: ");
-    switch( tab[0][0] ){
+    switch( tab[0][0][0] ){
         case 'd':
             printf("katalog \n");
             break;
@@ -280,7 +275,7 @@ void printLS_Mode1(char** tab){
 
     }
     
-    if (realpath(tab[8], resolved_path) != NULL) {
+    if (realpath(tab[0][8], resolved_path) != NULL) {
             printf("Sciezka: %s \n", resolved_path);
     } else {
         perror("Błąd");
@@ -290,15 +285,15 @@ void printLS_Mode1(char** tab){
     //DLA LINKOW SCIEZKA
 
 
-    switch( tab[0][0] ){
+    switch( tab[0][0][0] ){
         case 'd':
-            printf("Liczba podkatalogow: %d \n", countSubdirectories(tab[8]));
+            printf("Liczba podkatalogow: %d \n", countSubdirectories(tab[0][8]));
             break;
         case '-':
-            printf("Rozmiar: %s \n", tab[4]);
+            printf("Rozmiar: %s \n", tab[0][4]);
             break;
         case 'l':
-            printf("Rozmiar: %s \n", tab[4]);
+            printf("Rozmiar: %s \n", tab[0][4]);
             break;
         default:
             printf("TYPE NOT DEFIND \n");
@@ -309,24 +304,24 @@ void printLS_Mode1(char** tab){
 
     printf("uzytkownik: ");
     for(int i=1; i<4; i++){
-        if(tab[0][i] != '-'){printf("%c", tab[0][i]);}
+        if(tab[0][0][i] != '-'){printf("%c", tab[0][0][i]);}
     }
 
     printf(", grupa: ");
     for(int i=4; i<7; i++){
-        if(tab[0][i] != '-'){printf("%c", tab[0][i]);}
+        if(tab[0][0][i] != '-'){printf("%c", tab[0][0][i]);}
 
     }
 
     printf(", inni: ");
     for(int i=7; i<10; i++){
-        if(tab[0][i] != '-'){printf("%c", tab[0][i]);}
+        if(tab[0][0][i] != '-'){printf("%c", tab[0][0][i]);}
     }
     printf("\n");
 
-    printf("Ostatnio uzywany: %s \n", tab[5]);
-    printf("Ostatnio modyfikowany: %s \n", tab[6]);
-    printf("Ostatnio zmieniany stan: %s \n", tab[7]);
+    printf("Ostatnio uzywany: %s \n", tab[0][5]);
+    printf("Ostatnio modyfikowany: %s \n", tab[0][6]);
+    printf("Ostatnio zmieniany stan: %s \n", tab[0][7]);
     
 }
 
@@ -344,7 +339,7 @@ void sort(char*** matrix, int rows){
 
 }
 
-void lsFunction(char*** lines, char** linesMode1,int mode, char* fileName){
+void lsFunction(char*** lines, int mode, char* fileName){
  //Otworzenie katalogu ./
     int line = 0;
     
@@ -393,16 +388,16 @@ void lsFunction(char*** lines, char** linesMode1,int mode, char* fileName){
                 char* fileName = dp->d_name;
                 char* fileLink = init_link(st, dp);
 
-                linesMode1[0] = permissions;
-                linesMode1[1] = link;
-                linesMode1[2] = userName;
-                linesMode1[3] = groupName;
-                linesMode1[4] = size;
-                linesMode1[5] = lastAccess;
-                linesMode1[6] = lastModification;
-                linesMode1[7] = lastStatusChange;
-                linesMode1[8] = fileName;
-                linesMode1[9] = fileLink;
+                lines[0][0] = permissions;
+                lines[0][1] = link;
+                lines[0][2] = userName;
+                lines[0][3] = groupName;
+                lines[0][4] = size;
+                lines[0][5] = lastAccess;
+                lines[0][6] = lastModification;
+                lines[0][7] = lastStatusChange;
+                lines[0][8] = fileName;
+                lines[0][9] = fileLink;
 
             }
         }
@@ -449,18 +444,14 @@ int main(int argc, char* argv[]) {
     int rows = numOfRows();
 
     char*** lines;
-    char** linesMode1;
     
     if(mode == 0){
         lines = initializeStructure_Mode0(rows);
     } 
-    else{
-        linesMode1 = initializeStructure_Mode1();
-    }     
 
     if( argc > 1 ) { mode = 1; }
     
-    lsFunction(lines, linesMode1, mode, argv[1]);
+    lsFunction(lines, mode, argv[1]);
 
     if(mode == 0){
         for(int i=0; i<7; i++){
@@ -472,7 +463,7 @@ int main(int argc, char* argv[]) {
     }
 
     if(mode == 1){
-        printLS_Mode1(linesMode1);
+        printLS_Mode1(lines);
     }
 
     free(sizesOfCols);

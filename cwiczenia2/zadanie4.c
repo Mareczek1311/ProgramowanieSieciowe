@@ -20,6 +20,30 @@
 //inne formatowanie czasu
 //problem z czyszczeniem pamieci
 
+void initializeLS(const char *dirPath, int *rows, int *totalBlocks) {
+    DIR* dir;
+    struct dirent* entry;
+    struct stat st;
+    rows = 0;
+    totalBlocks = 0;
+
+    if ((dir = opendir(dirPath)) == NULL) {
+        perror("opendir");
+        exit(EXIT_FAILURE);
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+        if(lstat(entry->d_name, &st) == 0){
+            totalBlocks += st.st_blocks;
+        }
+        rows++;
+
+    }
+
+    closedir(dir);
+
+}
+
 int countSubdirectories(const char *dirPath) {
     DIR *dir;
     struct dirent *entry;
@@ -41,48 +65,6 @@ int countSubdirectories(const char *dirPath) {
     closedir(dir);
 
     return subdirectoryCount;
-}
-
-long long countTotalBlocks(){
-    long long totalBlocks = 0;
-    DIR* dirp;
-    struct dirent* dp;
-    struct stat st;
-
-    dirp = opendir("./");
-
-    if (dirp == NULL) {
-        perror("opendir");
-        exit(EXIT_FAILURE);
-    }
-    while ((dp = readdir(dirp)) != 0) {
-        if(lstat(dp->d_name, &st) == 0){
-            totalBlocks += st.st_blocks;
-        }
-    }
-    closedir(dirp);
-
-    return totalBlocks;
-}
-
-int numOfRows(){
-    DIR* dirp;
-    struct dirent* dp;
-    int rows = 0;
-
-    dirp = opendir("./");
-
-    if (dirp == NULL) {
-        perror("opendir");
-        exit(EXIT_FAILURE);
-    }
-    while ((dp = readdir(dirp)) != 0) {
-        rows++;
-        
-    }
-    closedir(dirp);
-
-    return rows;
 }
 
 char* init_permissions(mode_t mode) {
@@ -440,14 +422,12 @@ int main(int argc, char* argv[]) {
 
     int* sizesOfCols = (int*) malloc (8 * sizeof(int));
 
-    long long totalBlocks = countTotalBlocks();
-    int rows = numOfRows();
+    int totalBlocks;
+    int rows;
 
-    char*** lines;
-    
-    if(mode == 0){
-        lines = initializeStructure_Mode0(rows);
-    } 
+    initializeLS("./", rows, totalBlocks);
+
+    char*** lines = initializeStructure_Mode0(rows);
 
     if( argc > 1 ) { mode = 1; }
     

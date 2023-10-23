@@ -110,13 +110,11 @@ char* init_permissions(mode_t mode) {
 //funkcja dla formatowania liczb w tablice
 char* FormatText(int num){
     char str[20];
-    char place[20];
     int length = 0;
     sprintf(str, "%d", num);
 
     for(int i=0; i<20; i++){
         if(str[i] != '\0'){
-            //printf("%c \n", str[i]);
             length ++;
         }
         else{
@@ -129,7 +127,7 @@ char* FormatText(int num){
     for(int i=0; i<length; i++){
         res[i] = str[i];
     }
-
+    res[length] = '\0';
     return res;
 }
 
@@ -166,6 +164,8 @@ char* init_time(time_t mod_time){
         res[i] = buffer[i];
     }
 
+    res[length] = '\0';
+
     return res;
 }
 
@@ -175,8 +175,8 @@ char* init_link(struct stat st, struct dirent* dp){
     }
 
     char buffer[1024];
-    ssize_t link_string_length;
-    if((link_string_length = readlink(dp->d_name, buffer, link_string_length)) == -1){
+    ssize_t link_string_length = -1;
+    if((link_string_length = readlink(dp->d_name, buffer, 1024)) == -1){
         perror("readlink");
     }
     else{
@@ -387,9 +387,9 @@ void lsFunction(char*** lines, char** linesMode1,int mode, char* fileName){
                 char* userName = pw->pw_name;
                 char* groupName = gr->gr_name;
                 char* size = FormatText(st.st_size);
-                char* lastAccess = init_time(st.st_atimespec.tv_sec);
-                char* lastModification = init_time(st.st_mtimespec.tv_sec);
-                char* lastStatusChange = init_time(st.st_ctimespec.tv_sec);
+                char* lastAccess = init_time(st.st_atim.tv_sec);
+                char* lastModification = init_time(st.st_mtim.tv_sec);
+                char* lastStatusChange = init_time(st.st_ctim.tv_sec);
                 char* fileName = dp->d_name;
                 char* fileLink = init_link(st, dp);
 
@@ -414,7 +414,7 @@ void lsFunction(char*** lines, char** linesMode1,int mode, char* fileName){
             char* userName = pw->pw_name;
             char* groupName = gr->gr_name;
             char* size = FormatText(st.st_size);
-            char* date = init_time(st.st_mtimespec.tv_sec);
+            char* date = init_time(st.st_mtim.tv_sec);
             char* fileName = dp->d_name;
             char* fileLink = init_link(st, dp);
 
@@ -482,3 +482,4 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+

@@ -2,28 +2,27 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <stdio.h>
 #include <sys/user.h>
 
-
-int main(){
-    
+int main() {
     pid_t pid;
-    long orig_eax;
-    int signal;
+    long orig_rax;
+    int status;
 
-    if( (pid = fork())  == 0){
-        ptrace(PTRACE_TRACEME, 0, 0, 0);
-        execl("/bin/ls", "ls", 0);
-    }
-    else{
-        wait(&signal);
+    if ((pid = fork()) == 0) {
+        ptrace(PTRACE_TRACEME, 0, NULL, NULL);
+        execl("/bin/ls", "ls", NULL);
+    } else {
+        wait(&status);
 
-        orig_eax = ptrace(PTRACE_PEEKUSER, pid, 4 * ddorig_rax, 0);
-
-        printf("Child made a system call number: %ld \n", orig_eax);
-
-        ptrace(PTRACE_CONT, pid, 0, 0);
+        if (WIFSTOPPED(status)) {
+            orig_rax = ptrace(PTRACE_PEEKUSER, pid, 8 * ORIG_RAX, NULL);
+            printf("Child made a system call number: %ld\n", orig_rax);
+            ptrace(PTRACE_CONT, pid, NULL, NULL);
+        }
     }
 
     return 0;
 }
+

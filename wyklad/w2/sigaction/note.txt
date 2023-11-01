@@ -1,0 +1,1 @@
+Roznica miedzy sigaction a sigprocmask jest taka, ze sigaction obsluguje sygnaly, np. jestesmy w stanie wyswietlic informacje uzytkownikowi jaki sygnal dostalismy. Natomiast sigprocmask blokuje lub odblokowywuje jakakolwiek oblsuge sygnalu.

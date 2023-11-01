@@ -1,0 +1,2 @@
+pipe.c
+Jezeli zablokowalem proces rodzica a zarazem zablokowalem zapis. To rownoczesnie proces potomny czekal na odczyt

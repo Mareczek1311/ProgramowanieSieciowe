@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/user.h>
+#include <sys/reg.h>
 
 int main() {
     pid_t pid;
@@ -17,7 +18,7 @@ int main() {
         wait(&status);
 
         if (WIFSTOPPED(status)) {
-            orig_rax = ptrace(PTRACE_PEEKUSER, pid, 8 * ORIG_RAX, NULL);
+            orig_rax = ptrace(PTRACE_PEEKUSER, pid, 8 * ORIG_RAX, NULL); // Użyj konkretnej wartości 39 jako numeru wywołania systemowego (SYS_getpid)
             printf("Child made a system call number: %ld\n", orig_rax);
             ptrace(PTRACE_CONT, pid, NULL, NULL);
         }

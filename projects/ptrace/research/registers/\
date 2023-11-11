@@ -1,4 +1,4 @@
-#include <stdlib.h>
+
 #include <sys/ptrace.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -20,6 +20,7 @@ void reverse(char *str)
         str[i] = str[j];
         str[j] = temp;
     }
+    printf("%s \n", str);
 }
 
 int main() {
@@ -30,7 +31,7 @@ int main() {
 
     if ((pid = fork()) == 0) {
         ptrace(PTRACE_TRACEME, 0, 0, 0);
-        execl("/bin/echo", "echo", "HELLO WORLD");
+        execl("./reg", "reg", 0);
     } else {
         while (1) {
             wait(&status);
@@ -39,28 +40,22 @@ int main() {
                 break;
             }
 
-             ptrace(PTRACE_GETREGS, pid, NULL, &regs);
+            // Use PTRACE_GETREGS to access CPU registers
+            ptrace(PTRACE_GETREGS, pid, 0, &regs);
 
-        // Wartość wskazywana przez RDI będzie wskaźnikiem do stringa
-        long long string_addr = regs.rdi;
+            if (regs.orig_rax == SYS_write) {
+                long data;
+                data = ptrace(PTRACE_PEEKDATA, pid, regs.rdi, 0);
 
-        // Teraz możemy odczytać string z pamięci procesu potomnego
-        char buffer[256];
-        long data;
-
-        int i = 0;
-        while (1) {
-            data = ptrace(PTRACE_PEEKDATA, pid, string_addr + i, NULL);
-            if (data == -1) {
-                break;
+                // Copy the data from the traced process's memory
+                memcpy(str, &data, sizeof(long));
+                str[ptrace(PTRACE_PEEKUSER,
+                                  child, RDX,
+                                  NULL);] = '\0';
+                reverse(str);
+                printf("%s \n", str);
             }
-            buffer[i] = (char)(data & 0xFF);
-            i++;
-        }
-        buffer[i] = '\0';
-        printf("Odczytany string: %s\n", buffer);
-
-        ptrace(PTRACE_CONT, pid, NULL, NULL);
+            ptrace(PTRACE_CONT, pid, 0, 0);
         }
         printf("TA KURWA JUZ NIE DZIALA \n");
     }

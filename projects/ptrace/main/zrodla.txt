@@ -1,0 +1,3 @@
+fajny tytul --> patorjk.com/software/
+czesc z ptrace --> wszystkie linki z moodla
+asm w c --> https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html

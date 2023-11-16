@@ -14,32 +14,52 @@ char* szyfrowanie(char mess[], int przes, int len){
     return mess;
 }
 
-int main() {
-    char* ptr = (char*)malloc(7 * sizeof(char));
-    char* klucz = (char*) malloc(7*sizeof(char));
+int main(int argc, char **argv) {
 
-    if (ptr == NULL) {
-        perror("perror");
-        exit(EXIT_FAILURE);  // Zakończ program z kodem błędu
+    if(argc < 2){
+        printf("<< WRONG NUMBER OF ARGUMENTS >>\n");
+        printf("<< ./serwer PASSWORD SHIFT >>");
+        exit(EXIT_FAILURE);
     }
-    if
-    strcpy(ptr, "hellob");
-    strcpy(klucz, "hellob");
-    ptr[7] = '\0';
-    klucz[7] = '\0';
+    int dlugosc = strlen(argv[1]);
+    int przes = atoi(argv[2]);
+    int* p1 = &dlugosc;
+    int* p2 = &przes;
+
+    char* szyfr = (char*)malloc(dlugosc*sizeof(char));
+    char klucz[dlugosc];
+    char dlstr[3];
+    sprintf(dlstr, "%d", dlugosc);
+    char przstr[3];
+    sprintf(przstr, "%d", przes);
 
 
-    int przes = 1;
+
+
+    for(int i=0; i<dlugosc; i++){
+        klucz[i] = argv[1][i];
+    }
+
+
+    if (szyfr == NULL) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+    strcpy(szyfr, argv[1]);
+    szyfr[dlugosc] = '\0';
+    klucz[dlugosc] = '\0';
+
+
     for (int i = 0; i < 7; i++) {
-        ptr[i] += przes;
+        szyfr[i] += przes;
     }
 
-    printf("%s \n", ptr);
+    printf("%s \n", szyfr);
     asm (
         "mov $1, %%rbx\n"
         "L1: mov %0, %%rsi\n"
-        "mov $1, %%rcx\n" //przesuniedzie jako stala
-        "mov $7, %%rdx\n"
+        "mov %1, %%rcx\n" //przesuniedzie jako stala
+        "mov %2, %%rdx\n"
         "cmp $1, %%rbx\n"
         "je L1\n\t"
         "jne L2\n"
@@ -48,13 +68,21 @@ int main() {
         "syscall\n"
         "L2:\n"
         :
-        : "r"(ptr), "r"(przes)
+        : "r" (szyfr),   // Wejście dla zmienna_a
+          "r" (p1),   // Wejście dla zmienna_b
+          "r" (p2)
         : "%rax", "%rdi", "%rsi", "%rdx", "%rbx", "%rcx"
     );
-    printf("PTR:  %s \n", ptr);
-    printf("KLUCZ:  %s \n", klucz);
-    if (strcmp(ptr, klucz) == 0) {
-        printf("WYCIEK DANYCH \n");
+
+    //printf("szyfr:  %s \n", szyfr);
+
+    //printf("KLUCZ:  %s \n", klucz);
+    if (strcmp(szyfr, klucz) == 0) {
+        printf("-------DANE------- \n");
+        printf("IMIE: Marek \n");
+        printf("NAZWISKO: Kretkowski \n");
+        printf("STAN KONTA: 1zl \n");
+        printf("HASLO: ABCD \n");
     }
 
     return 0;

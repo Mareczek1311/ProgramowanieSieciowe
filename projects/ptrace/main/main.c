@@ -9,115 +9,133 @@
 #include <sys/syscall.h>
 #include <string.h>
 
-
 void title(){
 
 
- printf(" ▐██▌  ███▄ ▄███▓▓█████  ███▄ ▄███▓ ▒█████   ██▀███ ▓██   ██▓    ▄████▄   ▒█████   ███▄    █ ▄▄▄█████▓ ██▀███   ▒█████   ██▓     ▐██▌ \n");
- printf(" ▐██▌ ▓██▒▀█▀ ██▒▓█   ▀ ▓██▒▀█▀ ██▒▒██▒  ██▒▓██ ▒ ██▒▒██  ██▒   ▒██▀ ▀█  ▒██▒  ██▒ ██ ▀█   █ ▓  ██▒ ▓▒▓██ ▒ ██▒▒██▒  ██▒▓██▒     ▐██▌ \n");
- printf(" ▐██▌ ▓██    ▓██░▒███   ▓██    ▓██░▒██░  ██▒▓██ ░▄█ ▒ ▒██ ██░   ▒▓█    ▄ ▒██░  ██▒▓██  ▀█ ██▒▒ ▓██░ ▒░▓██ ░▄█ ▒▒██░  ██▒▒██░     ▐██▌ \n");
- printf(" ▓██▒ ▒██    ▒██ ▒▓█  ▄ ▒██    ▒██ ▒██   ██░▒██▀▀█▄   ░ ▐██▓░   ▒▓▓▄ ▄██▒▒██   ██░▓██▒  ▐▌██▒░ ▓██▓ ░ ▒██▀▀█▄  ▒██   ██░▒██░     ▓██▒ \n");
- printf(" ▒▄▄  ▒██▒   ░██▒░▒████▒▒██▒   ░██▒░ ████▓▒░░██▓ ▒██▒ ░ ██▒▓░   ▒ ▓███▀ ░░ ████▓▒░▒██░   ▓██░  ▒██▒ ░ ░██▓ ▒██▒░ ████▓▒░░██████▒ ▒▄▄ \n");
- printf(" ░▀▀▒ ░ ▒░   ░  ░░░ ▒░ ░░ ▒░   ░  ░░ ▒░▒░▒░ ░ ▒▓ ░▒▓░  ██▒▒▒    ░ ░▒ ▒  ░░ ▒░▒░▒░ ░ ▒░   ▒ ▒   ▒ ░░   ░ ▒▓ ░▒▓░░ ▒░▒░▒░ ░ ▒░▓  ░ ░▀▀▒ \n");
- printf(" ░  ░ ░  ░      ░ ░ ░  ░░  ░      ░  ░ ▒ ▒░   ░▒ ░ ▒░▓██ ░▒░      ░  ▒     ░ ▒ ▒░ ░ ░░   ░ ▒░    ░      ░▒ ░ ▒░  ░ ▒ ▒░ ░ ░ ▒  ░ ░  ░ \n");
- printf("    ░ ░      ░      ░   ░      ░   ░ ░ ░ ▒    ░░   ░ ▒ ▒ ░░     ░        ░ ░ ░ ▒     ░   ░ ░   ░        ░░   ░ ░ ░ ░ ▒    ░ ░       ░ \n");
- printf(" ░           ░      ░  ░       ░       ░ ░     ░     ░ ░        ░ ░          ░ ░           ░             ░         ░ ░      ░  ░ ░ \n");
- printf("                                                     ░ ░        ░ \n");
+
+
+
+
+printf(" ███▄ ▄███▓   ▓█████     ███▄ ▄███▓    ▒█████      ██▀███     ▓██   ██▓       ██▓ ██▓          ██▓       ▓█████     ▄▄▄          ██ ▄█▀\n");
+printf("▓██▒▀█▀ ██▒   ▓█   ▀    ▓██▒▀█▀ ██▒   ▒██▒  ██▒   ▓██ ▒ ██▒    ▒██  ██▒      ▓██▒▓██▒         ▓██▒       ▓█   ▀    ▒████▄        ██▄█▒ \n");
+printf("▓██    ▓██░   ▒███      ▓██    ▓██░   ▒██░  ██▒   ▓██ ░▄█ ▒     ▒██ ██░      ▒██▒▒██▒         ▒██░       ▒███      ▒██  ▀█▄     ▓███▄░ \n");
+printf("▒██    ▒██    ▒▓█  ▄    ▒██    ▒██    ▒██   ██░   ▒██▀▀█▄       ░ ▐██▓░      ░██░░██░         ▒██░       ▒▓█  ▄    ░██▄▄▄▄██    ▓██ █▄ \n");
+printf("▒██▒   ░██▒   ░▒████▒   ▒██▒   ░██▒   ░ ████▓▒░   ░██▓ ▒██▒     ░ ██▒▓░      ░██░░██░         ░██████▒   ░▒████▒    ▓█   ▓██▒   ▒██▒ █▄\n");
+printf("░ ▒░   ░  ░   ░░ ▒░ ░   ░ ▒░   ░  ░   ░ ▒░▒░▒░    ░ ▒▓ ░▒▓░      ██▒▒▒       ░▓  ░▓           ░ ▒░▓  ░   ░░ ▒░ ░    ▒▒   ▓▒█░   ▒ ▒▒ ▓▒\n");
+printf("░  ░      ░    ░ ░  ░   ░  ░      ░     ░ ▒ ▒░      ░▒ ░ ▒░    ▓██ ░▒░        ▒ ░ ▒ ░         ░ ░ ▒  ░    ░ ░  ░     ▒   ▒▒ ░   ░ ░▒ ▒░\n");
+printf("░      ░         ░      ░      ░      ░ ░ ░ ▒       ░░   ░     ▒ ▒ ░░         ▒ ░ ▒ ░           ░ ░         ░        ░   ▒      ░ ░░ ░ \n");
+printf("       ░         ░  ░          ░          ░ ░        ░         ░ ░            ░   ░               ░  ░      ░  ░         ░  ░   ░  ░   \n");
+printf("                                                               ░ ░                                                                     \n");
+
+
+
+
+
 
 
 
 }
 
-void options(){
-
-
-    printf("PICK SCENARIO \n");
-    printf("[1] READ FILE \n");
-    printf("[2] CHANGE GLOBAL VARIABLE SCENARIO \n");
-    printf("[3] OPTION3 \n");
-    printf("[4] OPTION4 \n");
-    printf("[5] OPTION5 \n");
-}
-
-int main() {
+int main(int argc, char **argv) {
+    title();
     int pid, status;
-    int fd[2], fd2[2];
-    int opt;
-    char filename[64];
-    unsigned long adr;
-    long data;
+    struct user_regs_struct regs;
 
-    pipe(fd);
-    pipe(fd2);
-
-    pid = fork();
-
-    if (pid < 0) {
-        perror("Fork error!");
+    printf("PROCESS PID >>> ");
+    scanf("%d", &pid);
+    if(ptrace(PTRACE_ATTACH, pid, 0, 0)){
+        perror("ptrace ATTACH");
         exit(EXIT_FAILURE);
-    } else if (pid == 0) {
-        // Child process
-        close(fd[1]);
-        close(fd2[1]);
-
-        read(fd[0], &opt, sizeof(int));
-
-        switch (opt) {
-            case 1:
-                read(fd2[0], filename, sizeof(char) * 64);
-                execl("/bin/cat", "cat", filename, NULL);
-                perror("execl");
-                exit(EXIT_FAILURE);
-            case 2:
-                ptrace(PTRACE_TRACEME, 0, 0, 0);
-                execl("./child3", "child3", 0);
-                perror("execl");
-                exit(EXIT_FAILURE);
-        }
-    } else {
-        // Parent process
-        close(fd[0]);
-        close(fd2[0]);
-
-        title();
-        options();
-
-        printf(">> ");
-        scanf("%d", &opt);
-
-        switch (opt) {
-            case 1:
-                printf("FILE DIR >>> ");
-                scanf("%s", filename);
-                write(fd[1], &opt, sizeof(int));
-                write(fd2[1], filename, sizeof(char) * 64);
-                break;
-
-            case 2:
-
-                write(fd[1], &opt, sizeof(int));
-                printf("VARIABLE ADDRES >>> ");
-                scanf("%lu", &adr);
-                while(1){
-                    ptrace(PTRACE_SINGLESTEP, pid, 0, 0);
-                    wait(&status);
-                    if(WIFEXITED(status)){break;}
-                    data = ptrace(PTRACE_PEEKDATA, pid, adr, 0);
-                    printf("%d \n", data);
-                    if(data == 0){
-                        printf("CHANGE VARIABLE %ld TO >>> ", data);
-                        scanf("%ld", &data);
-                        ptrace(PTRACE_POKEDATA, pid, adr, data);
-                        ptrace(PTRACE_CONT, pid ,0, 0);
-                        break;
-                    }
-                }
-
-        }
-
-        // Wait for the child process to finish
-        wait(NULL);
     }
+    while (1) {
+        wait(&status);
+        if(ptrace(PTRACE_CONT, pid, 0, 0) == -1){
+            perror("ptrace CONT");
+            exit(EXIT_FAILURE);
+        }
+
+        sleep(1);
+        kill(pid, SIGINT);
+        wait(&status);
+
+        if(ptrace(PTRACE_GETREGS, pid, 0, &regs) == -1){
+            perror("ptrace GETREGS");
+            exit(EXIT_FAILURE);
+        }
+
+        int len = ptrace(PTRACE_PEEKDATA, pid, regs.rcx, 0);
+        int shift = ptrace(PTRACE_PEEKDATA, pid, regs.rdx, 0);
+        printf("PASSWORD LENGTH << : %d \n", len);
+
+        printf("SHIFT << %d \n", shift);
+
+        regs.rbx = 2; // equal crash without print
+
+        long addr = regs.rsi;
+        union u {
+            long val;
+            char chars[len];
+        }data;
+
+        char *laddr = (char*) malloc((64)*sizeof(char));
+        int i,j;
+        i = 0;
+        j = len/sizeof(long);
+
+        while(i<j){
+            data.val = ptrace(PTRACE_PEEKDATA, pid, addr+i*8, 0);
+            ++i;
+            memcpy(laddr, data.chars, sizeof(long));
+        }
+
+        j = len % sizeof(long);
+
+        if(j!=0){
+            data.val = ptrace(PTRACE_PEEKDATA, pid, addr +i*8, 0);
+            memcpy(laddr, data.chars, j);
+        }
+        laddr[len]='\0';
+
+        printf("CODED PASSWORD << %s \n", laddr);
+
+        printf("DECODING...\n");
+        sleep(1);
+        for(int i=0; i<len; i++){
+            laddr[i] -= shift;
+        }
+        printf("DECODED PASSWORD << %s \n", laddr);
+
+        i=0;
+        j=len/sizeof(long);
+        printf("INJECTING DECODED PASSWORD... \n");
+        while(i<len){
+            memcpy(data.chars, laddr, sizeof(long));
+            ptrace(PTRACE_POKEDATA, pid,
+            addr + i * 8, data.val);
+            ++i;
+            laddr += sizeof(long);
+            i++;
+        }
+
+        j = len%sizeof(long);
+        if(j != 0){
+            memcpy(data.chars, laddr, j);
+            ptrace(PTRACE_POKEDATA, pid,
+            addr + i * 8, data.val);
+        }
+        sleep(1);
+        printf("PASSWORD INJECTED! \n");
+        ptrace(PTRACE_SETREGS, pid, 0, &regs);
+
+        ptrace(PTRACE_CONT, pid, 0, 0);
+        wait(&status);
+
+        if (WIFEXITED(status)) {
+            break;
+        }
+    break;
+    }
+
 
     return 0;
 }

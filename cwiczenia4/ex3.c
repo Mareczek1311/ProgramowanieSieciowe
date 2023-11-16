@@ -19,19 +19,32 @@ int main() {
     printf("Serwer_rodzic: kolelejka fifo zostala utworzona  \n");
 
 
-    fifodesc = open("mojafifo", O_RDONLY);
 
     if(fifodesc != -1) {
         while(1) {
-		    chars = read(fifodesc, &buf, sizeof(buf));
-		    if(chars > 0) {
+
+
+    fifodesc = open("mojafifo", O_RDONLY);
+            chars = read(fifodesc, &buf, sizeof(buf));
+
+            if(chars > 0) {
                 buf[chars] = '\0';
-			    printf("Potomek: Klient przyslal %2d bajtow: %s", chars-1, buf);
+                if((pid = fork()) <0){
+                    printf("error\n");
+                    exit(1);
+                }
+                else if(pid == 0){
+                    printf("Potomek: Klient przyslal %2d bajtow: %s", chars-1, buf);
+                    exit(0);
+                }
+                else{
+                    //
+                }
             }
 	    }
 
     }
-
+    close(fifodesc);
 
 	return 0;
 

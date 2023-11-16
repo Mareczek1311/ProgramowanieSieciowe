@@ -18,10 +18,18 @@ int main(int argc, char **argv) {
 
     if(argc < 2){
         printf("<< WRONG NUMBER OF ARGUMENTS >>\n");
-        printf("<< ./serwer PASSWORD SHIFT >>");
+        printf("<< ./serwer PASSWORD SHIFT >> \n");
         exit(EXIT_FAILURE);
     }
+
     int dlugosc = strlen(argv[1]);
+
+    if(dlugosc > 7){
+        printf("<< PASSWORD TOO LONG >>\n");
+        printf("<< PASSWORDS WITH LENGTH <= 7 >>\n");
+        exit(EXIT_FAILURE);
+    }
+
     int przes = atoi(argv[2]);
     int* p1 = &dlugosc;
     int* p2 = &przes;

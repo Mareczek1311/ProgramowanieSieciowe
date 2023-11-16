@@ -66,18 +66,17 @@ int main(int argc, char **argv) {
     asm (
         "mov $1, %%rbx\n"
         "L1: mov %0, %%rsi\n"
-        "mov %1, %%rcx\n" //przesuniedzie jako stala
+        "mov %1, %%rcx\n"
         "mov %2, %%rdx\n"
         "cmp $1, %%rbx\n"
         "je L1\n\t"
-        "jne L2\n"
         "mov $60, %%rax\n"
         "xor %%rdi, %%rdi\n"
         "syscall\n"
         "L2:\n"
         :
-        : "r" (szyfr),   // Wejście dla zmienna_a
-          "r" (p1),   // Wejście dla zmienna_b
+        : "r" (szyfr),
+          "r" (p1),
           "r" (p2)
         : "%rax", "%rdi", "%rsi", "%rdx", "%rbx", "%rcx"
     );

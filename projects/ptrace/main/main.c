@@ -37,6 +37,8 @@ printf("                                                               ░ ░  
 }
 
 int main(int argc, char **argv) {
+
+    system("clear");
     title();
     int pid, status;
     struct user_regs_struct regs;

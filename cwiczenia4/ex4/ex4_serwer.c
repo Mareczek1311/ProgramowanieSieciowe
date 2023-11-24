@@ -18,21 +18,15 @@ int main() {
 	fifodesc = open("mojafifo", O_RDONLY);
 
 	if(fifodesc != -1) {
-
 		while(1) {
+			read(fifodesc, &pid, sizeof(pid_t));
 			chars = read(fifodesc, &buf, sizeof(buf));
 			if(chars > 0) {
-                memcpy(&pid, buf, sizeof(pid_t));
-
-                char* msg = buf + sizeof(pid_t);
-
 				buf[chars] = '\0';
-				printf("Klient (%d) przyslal %2d bajtow: %s", pid, chars - sizeof(pid)-1, msg);
+				printf("Klient (%d) przyslal %2d bajtow: %s", pid, chars-1, buf);
 			}
 		}
-
 		close(fifodesc);
-
 	}
 
 	return 0;

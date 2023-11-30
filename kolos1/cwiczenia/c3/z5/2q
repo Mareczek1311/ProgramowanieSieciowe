@@ -1,0 +1,22 @@
+#include <stdio.h>
+#include <stdlib.h>
+     #include <unistd.h>
+     #include <signal.h>
+
+int main(){
+    
+    int pid, status;
+
+
+    if((pid = fork()) == 0){
+        while(1){
+            printf("%d \n", rand() % 2 + 1);
+            kill(getppid(), 1);
+            sleep(1);
+        }
+    }else{
+
+    }
+
+    return 0;
+}

@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+
+/*
 char* szyfrowanie(char mess[], int przes, int len){
 
     for(int i=0; i<len; i++){
@@ -13,6 +15,7 @@ char* szyfrowanie(char mess[], int przes, int len){
     }
     return mess;
 }
+*/
 
 int main(int argc, char **argv) {
 
@@ -36,11 +39,13 @@ int main(int argc, char **argv) {
 
     char* szyfr = (char*)malloc(dlugosc*sizeof(char));
     char klucz[dlugosc];
+
+   /*
     char dlstr[3];
     sprintf(dlstr, "%d", dlugosc);
-    char przstr[3];
+    char pazstr[3];
     sprintf(przstr, "%d", przes);
-
+    */
 
 
 
@@ -66,7 +71,7 @@ int main(int argc, char **argv) {
     asm (
         "mov $1, %%rbx\n"
         "L1: mov %0, %%rsi\n"
-        "mov %1, %%rcx\n" //przesuniedzie jako stala
+        "mov %1, %%rcx\n"
         "mov %2, %%rdx\n"
         "cmp $1, %%rbx\n"
         "je L1\n\t"

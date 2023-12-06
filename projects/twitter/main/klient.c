@@ -1,65 +1,65 @@
 #include "data.h"
 
+key_t key;
+    
+int shmid;
+struct database* db;
+    
+int semid;
+struct sembuf sb;
 
 //argv[1] - sciezka_do_pliku
 //argv[2] - username
 
 int main(int argc, char* argv[]){
 
-    key_t key;
-    
-    int shmid;
-    struct database* db;
-    
-    int semid;
-    struct sembuf sb;
-    
     char option;
     char msg[MSG_SIZE];
     char username[MSG_SIZE];
     int post;
 
-    /*
-        if(argv != 3){
-            ///
-        }
-    */  
-
-   //TEN IF DO ZASTAPIENIA TYM WYZEJ
-
-   if(argc != 2){
+   if(argc != 3){
         printf("--- WRONG NUMBER OF ARGUMENTS ---\n");
-        printf("--- ./k USERNAME ---\n");
+        printf("--- ./k FILEPATH USERNAME ---\n");
         exit(1);
    }
 
-   strncpy(username, argv[1], MSG_SIZE);
+    strncpy(username, argv[2], MSG_SIZE);
 
-    //trzeba zastąpić prawidlowym plikiem podanym od klienta
-    if((key = ftok("data.h", 'A')) == -1){
+    if((key = ftok(argv[1], 'A')) == -1){
         perror("ftok");
         exit(1);
     }
 
-    // --- TWORZENIE POJEDYNCZEGO SEMAFORA ---
-    if((semid = semget(key, 1, 0)) == -1){
+    // --- TWORZENIE SEMAFOROW ---
+    if((semid = semget(key, db->n, 0666 | IPC_EXCL)) == -1){
         perror("semget");
         exit(1);
     }
 
-    //Zablokowanie semafora
-    sb.sem_op = -1;
-    sb.sem_flg = 0;
+    /*
+    SCHEMAT DZIALANIA:
+    - zablokowanie wszystkich postow
+    - wypisanie ich
+    - odblokowanie
+
+    OPCJE:
+        DODAWANIE POSTA
+        - zablokowanie semafora do ktorego bede dodawac nowy post
+        - odblokowanie go po dodaniu
+
+        LIKE
+        - zablokowanie semafora do ktorego bede dawac like
+        - odblokowanie go
+
+    */
+
+    lock_sem(-1, semid, db->n);
     
     printf("Loading...\n");
 
-    if (semop(semid, &sb, 1) == -1) {
-        perror("semop");
-        exit(1);
-    }
-
     // --- TWORZENIE PAMIECI WSPOLDZIELONEJ ---
-    if((shmid = shmget(key, SHM_SIZE, 0644 | IPC_EXCL)) == -1){
+    if((shmid = shmget(key, SHM_SIZE, IPC_EXCL)) == -1){
         perror("shmget");
         exit(1);
     }
@@ -76,12 +76,20 @@ int main(int argc, char* argv[]){
         print_posts(db, 1);
     }
 
+    unlock_sem(-1, semid, db->n);
+
     printf("Podaj akcje (N)owy wpis, (L)ike \n");
 
     scanf("%c", &option);
 
     switch(option){
         case 'N':
+            //Brakuje sprawdzenia czy jest miejsce na nowy wpis
+            if(db->curr_server == db->n){
+                printf("Brak miejsca na nowy wpis\n");
+                break;
+            }
+
             printf("Napisz co chodzi ci po glowie: \n");
             printf("> ");
 
@@ -90,32 +98,45 @@ int main(int argc, char* argv[]){
             fgets(msg, sizeof(msg), stdin);
             msg[strcspn(msg, "\n")] = '\0';
             
-            strncpy(db->posts[db->curr_server].content, msg, MSG_SIZE);
-            strncpy(db->posts[db->curr_server].username, username, MSG_SIZE);
-            db->posts[db->curr_server].likes = 0;
-            db->posts[db->curr_server].isSet = 1;
+            lock_sem(db->curr_server, semid, db->n);
+
+            strncpy(db->posts[db->curr_server]->content, msg, MSG_SIZE);
+            strncpy(db->posts[db->curr_server]->username, username, MSG_SIZE);
+            db->posts[db->curr_server]->likes = 0;
+            db->posts[db->curr_server]->isSet = 1;
+
+            sleep(10);
+
+            unlock_sem(db->curr_server, semid, db->n);
+
             db->curr_server++;
             //Nowy wpis
             break;
         case 'L':
+            //Brakuje sprawdzenia czy indeks jest poprawny  
+
             //Like
             printf("Ktory wpis chcesz polubic: \n");
             printf("> ");
             scanf("%d", &post);
             post-=1;
-            if(post<db->curr_server){
-                db->posts[post].likes++;
+            
+            if(post > db->curr_server && post < 0){
+                printf("Podany wpis nie istnieje\n");
+                break;
             }
+
+            lock_sem(post, semid, db->n);
+
+            if(post<db->curr_server){
+                db->posts[post]->likes++;
+            }
+            
+            unlock_sem(post, semid, db->n);
+
             break;
         default:
             printf("Podana opcja nie istnieje\n");
-    }
-
-   //Odblokowanie semafora
-    sb.sem_op = 1;
-    if (semop(semid, &sb, 1) == -1) {
-        perror("semop");
-        exit(1);
     }
 
     if(shmdt(db) == -1){
@@ -124,23 +145,6 @@ int main(int argc, char* argv[]){
     }
 
     printf("Dziekuje za skorzystanie z aplikacji Twitter 2.0\n");
-    /*
-    p = (struct post*) shmat(shmid, (void*)0, 0);
-
-
-    if(argc == 4){
-        printf("Dodaje do posta...\n");
-        strncpy(p->username, argv[1], MSG_SIZE);
-        strncpy(p->content, argv[2], MSG_SIZE);
-        p->likes = atoi(argv[3]);
-    }  
-    else{
-        printf("Segment zawiera: \n");
-        printf("Username: %s \n", p->username);
-        printf("Content: %s \n", p->content);
-        printf("Likes: %d \n", p->likes);
-    }
-    */
 
     return 0;
 }

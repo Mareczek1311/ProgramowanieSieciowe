@@ -11,7 +11,11 @@ int semid;
 void signal_handler(int signal){
     switch(signal){
         case SIGTSTP:
+            lock_sem(-1, semid, db->n);
+
             print_posts(db, 0);
+
+            unlock_sem(-1, semid, db->n);
             break;
 
         case SIGINT:
@@ -23,12 +27,12 @@ void signal_handler(int signal){
             printf("(Odlaczenie shm: OK ");
 
             if(shmctl(shmid, IPC_RMID, 0) == -1){
-                perror("shmctl remove");
+                perror("shmctl remove"); 
                 exit(1);
             }
             printf(", usuniecie shm: OK");
             
-            if (semctl(semid, 0, IPC_RMID, arg) == -1) {
+            if (semctl(semid, db->n, IPC_RMID, arg) == -1) {
                 perror("semctl");
                 exit(1);
             }
@@ -41,43 +45,49 @@ void signal_handler(int signal){
     }
 }
 
+
+// argv[1] - nazwa_pliku
+// argv[2] - maksymalna_liczba_wiadomosci
 int main(int argc, char* argv[]){
 
-/*
     if(argc != 3){
         printf("!WRONG ARGUMENTS!\n");
-        printf("./s.c file_name n \n");
+        printf("./s.c file_name msg_count \n");
         exit(1);
     }
-*/
 
     signal(SIGTSTP, signal_handler);
     signal(SIGINT, signal_handler);
 
     key_t key;
+    
+    int rozmiar; // TRZEBA UZUPELNIC
+
     printf("[Serwer]: Twitter 2.0 (wersja C)\n");    
 
     printf("[Serwer]: tworze klucz na podstawie pliku data.h... ");
-    //trzeba zastąpić prawidlowym plikiem podanym od admina
-    if((key = ftok("data.h", 'A')) == -1){
+
+    if((key = ftok(argv[1], 'A')) == -1){
         perror("ftok");
         exit(1);
     }
     printf("OK(klucz: %d)\n", key);
 
     printf("[Serwer]: Tworzę segment pamięci wspoldzielonej na 10 wpisow po 128b...  \n");
-    if((shmid = shmget(key, SHM_SIZE, 0644 | IPC_CREAT | IPC_EXCL)) == -1){
+    if((shmid = shmget(key, SHM_SIZE, 0644 | IPC_CREAT)) == -1){
         perror("shmget");
         exit(1);
     }
     printf("OK (id: %d, rozmiar: %db) \n", shmid, SHM_SIZE);
 
     printf("[Serwer]: Dolaczam pamiec wspolna... ");
+    
     if((db = (struct database*) shmat(shmid, (void*)0, 0)) == (void *) -1){
         perror("shmat");
         exit(1);
     }
-    db->n = 9;
+    db->n = POSTS_COUNT;
+
     db->curr_server = 0;
 
     for(int i=0; i<db->n; i++){
@@ -87,19 +97,21 @@ int main(int argc, char* argv[]){
     printf("OK (adres: %p) \n", (void*)db);
 
     // ---TWORZENIE SEMAFORA--- 
-    printf("[Serwer]: Tworzę pojedynczy semafor dla calego serwisu...  \n");
+    printf("[Serwer]: Tworzę %d semaforow...  \n", db->n);
 
-    if ((semid = semget(key, 1, 0666 | IPC_CREAT | IPC_EXCL)) == -1) {
+    if ((semid = semget(key, db->n, 0666 | IPC_CREAT)) == -1) {
         perror("semget");
         exit(1);
     }
     printf("OK (id: %d)\n", semid);
 
-    printf("[Serwer]: Inicjalizuję semafor... ");
-    arg.val = 1;
-    if(semctl(semid, 0, SETVAL, arg) == -1){
-        perror("semctl");
-        exit(1);
+    printf("[Serwer]: Inicjalizuję semafory... ");
+    
+    for (int i = 0; i < db->n; i++) {
+        if (semctl(semid, i, SETVAL, 1) == -1) {
+            perror("semctl");
+            exit(1);
+        }
     }
     printf("OK \n");
 
@@ -112,6 +124,8 @@ int main(int argc, char* argv[]){
     printf("Content: %s \n", p->content);
     printf("Likes: %d \n", p->likes);
     */
+
+   //A JAK SERWER BEDZIE DZIALAC Z SEMAFOROW!!!!!!!!
 
     while(1){
         sleep(1);

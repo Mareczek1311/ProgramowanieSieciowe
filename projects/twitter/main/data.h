@@ -11,7 +11,7 @@
 
 #define SHM_SIZE 1248
 #define MSG_SIZE 60
-#define POSTS_COUNT 9
+#define POSTS_COUNT 10
 
 struct post{
     int likes;
@@ -29,7 +29,7 @@ struct database{
 union semun {
     int val;
     struct semid_ds *buf;
-    struct database* db;
+    struct post p;
 };
 
 int isEmpty(struct database* db){
@@ -61,6 +61,66 @@ void print_posts(struct database* db, int mode){
                     printf("    %d. %s [Autor: %s, Polubienia: %d] \n", i+1, db->posts[i].content, db->posts[i].username, db->posts[i].likes);
                 }
             }
+        }
+    }
+}
+
+
+// do odblokowania od zablokowania powinienem sprawdzac czy podaje poprawny index?????
+void lock_sem(int sem, int semid, int msg_count){
+    //Zablokowanie semaforow (sem=-1 kazdy, 0 <= sem < POST_COUNT okreslony)
+    if(sem == -1){
+        struct sembuf operacje_blokujace[POSTS_COUNT];
+        
+        for(int i=0; i<POSTS_COUNT; i++){
+            operacje_blokujace[i].sem_num = i;
+            operacje_blokujace[i].sem_op = -1; // Blokowanie semafora
+            operacje_blokujace[i].sem_flg = SEM_UNDO;
+        }
+        if (semop(semid, operacje_blokujace, POSTS_COUNT) == -1) {
+            perror("Blad semop (blokowanie)");
+            exit(EXIT_FAILURE);
+        }
+    }
+    else{
+        struct sembuf sb;
+
+        sb.sem_num = sem;
+        sb.sem_op = -1; 
+        sb.sem_flg = 0;
+        if (semop(semid, &sb, 1) == -1) {
+            perror("semop");
+            exit(1);
+        }
+    }
+    
+}
+
+void unlock_sem(int sem, int semid, int msg_count){
+    //Odblokowanie semaforow (sem=-1 kazdy, 0 <= sem < POST_COUNT okreslony)
+    if(sem == -1){
+        struct sembuf operacje_odblokowujace[POSTS_COUNT];
+
+        for (int i = 0; i < POSTS_COUNT; ++i) {
+            operacje_odblokowujace[i].sem_num = i;
+            operacje_odblokowujace[i].sem_op = 1; // Odblokowanie semafora
+            operacje_odblokowujace[i].sem_flg = SEM_UNDO;
+        }
+
+        if (semop(semid, operacje_odblokowujace, POSTS_COUNT) == -1) {
+            perror("Blad semop (odblokowanie)");
+            exit(EXIT_FAILURE);
+        }
+    }
+    else{
+        struct sembuf sb;
+
+        sb.sem_num = sem;
+        sb.sem_op = 1; 
+        sb.sem_flg = 0;
+        if (semop(semid, &sb, 1) == -1) {
+            perror("semop");
+            exit(1);
         }
     }
 }

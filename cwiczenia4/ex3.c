@@ -7,32 +7,46 @@
 
 /* Brak obslugi bledow! */
 
-int main() {
+void obsluga_klienta(int fifodesc) {
+    char buf[1024];
+    int chars;
 
-	int    fifodesc;
-	char   buf[1024];
-	int    chars;
-    int pid, status;
-
-
-   	mkfifo("mojafifo", 0777);
-    printf("Serwer_rodzic: kolelejka fifo zostala utworzona  \n");
-
-
-    fifodesc = open("mojafifo", O_RDONLY);
-
-    if(fifodesc != -1) {
-        while(1) {
-		    chars = read(fifodesc, &buf, sizeof(buf));
-		    if(chars > 0) {
-                buf[chars] = '\0';
-			    printf("Potomek: Klient przyslal %2d bajtow: %s", chars-1, buf);
-            }
-	    }
-
+    while (1) {
+        chars = read(fifodesc, &buf, sizeof(buf));
+        if (chars > 0) {
+            buf[chars] = '\0';
+            printf("Klient przyslal %2d bajtow: %s", chars - 1, buf);
+        }
     }
 
+    close(fifodesc);
+}
 
-	return 0;
+int main() {
+    int fifodesc;
+    pid_t child_pid;
 
+    mkfifo("mojafifo", 0777);
+    printf("Serwer: czekam na komunikaty klientow...\n");
+
+    while (1) {
+        fifodesc = open("mojafifo", O_RDONLY);
+
+        if (fifodesc != -1) {
+
+            child_pid = fork();
+
+            if (child_pid == 0) {
+                close(fifodesc);
+                obsluga_klienta(open("mojafifo", O_RDONLY));
+                exit(0);
+            } else {
+                close(fifodesc);
+                waitpid(child_pid, NULL, WNOHANG);
+
+            }
+        }
+    }
+
+    return 0;
 }

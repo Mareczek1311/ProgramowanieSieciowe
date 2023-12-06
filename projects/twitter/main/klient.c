@@ -7,8 +7,13 @@
 int main(int argc, char* argv[]){
 
     key_t key;
+    
     int shmid;
     struct database* db;
+    
+    int semid;
+    struct sembuf sb;
+    
     char option;
     char msg[MSG_SIZE];
     char username[MSG_SIZE];
@@ -20,6 +25,14 @@ int main(int argc, char* argv[]){
         }
     */  
 
+   //TEN IF DO ZASTAPIENIA TYM WYZEJ
+
+   if(argc != 2){
+        printf("--- WRONG NUMBER OF ARGUMENTS ---\n");
+        printf("--- ./k USERNAME ---\n");
+        exit(1);
+   }
+
    strncpy(username, argv[1], MSG_SIZE);
 
     //trzeba zastąpić prawidlowym plikiem podanym od klienta
@@ -28,6 +41,24 @@ int main(int argc, char* argv[]){
         exit(1);
     }
 
+    // --- TWORZENIE POJEDYNCZEGO SEMAFORA ---
+    if((semid = semget(key, 1, 0)) == -1){
+        perror("semget");
+        exit(1);
+    }
+
+    //Zablokowanie semafora
+    sb.sem_op = -1;
+    sb.sem_flg = 0;
+    
+    printf("Loading...\n");
+
+    if (semop(semid, &sb, 1) == -1) {
+        perror("semop");
+        exit(1);
+    }
+
+    // --- TWORZENIE PAMIECI WSPOLDZIELONEJ ---
     if((shmid = shmget(key, SHM_SIZE, 0644 | IPC_EXCL)) == -1){
         perror("shmget");
         exit(1);
@@ -79,6 +110,19 @@ int main(int argc, char* argv[]){
         default:
             printf("Podana opcja nie istnieje\n");
     }
+
+   //Odblokowanie semafora
+    sb.sem_op = 1;
+    if (semop(semid, &sb, 1) == -1) {
+        perror("semop");
+        exit(1);
+    }
+
+    if(shmdt(db) == -1){
+        perror("shmdt");
+        exit(1);
+    }
+
     printf("Dziekuje za skorzystanie z aplikacji Twitter 2.0\n");
     /*
     p = (struct post*) shmat(shmid, (void*)0, 0);
@@ -97,11 +141,6 @@ int main(int argc, char* argv[]){
         printf("Likes: %d \n", p->likes);
     }
     */
-    if(shmdt(db) == -1){
-        perror("shmdt");
-        exit(1);
-    }
-
 
     return 0;
 }

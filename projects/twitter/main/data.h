@@ -5,7 +5,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
-
+#include <sys/sem.h>
+#include <sys/types.h>
 //Wartosci sa na sztywno, nie zaleza od systemu
 
 #define SHM_SIZE 1248
@@ -28,7 +29,7 @@ struct database{
 union semun {
     int val;
     struct semid_ds *buf;
-    struct *database db;
+    struct database* db;
 };
 
 int isEmpty(struct database* db){

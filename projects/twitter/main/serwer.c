@@ -20,15 +20,22 @@ void signal_handler(int signal){
                 perror("shmdt");
                 exit(1);
             }
-            printf("(Odlaczenie: OK ");
+            printf("(Odlaczenie shm: OK ");
 
             if(shmctl(shmid, IPC_RMID, 0) == -1){
                 perror("shmctl remove");
                 exit(1);
             }
-            printf(", usuniecie: OK)\n");
-            exit(1);
-            //zakonczenie poprzedzone posprzataniem
+            printf(", usuniecie shm: OK");
+            
+            if (semctl(semid, 0, IPC_RMID, arg) == -1) {
+                perror("semctl");
+                exit(1);
+            }
+            printf(", usuniecie sem: OK) \n");
+
+            exit(0);
+            //zakonczenie poprzedzone posprzataniem (sem pojedynczy, shm)
         default:
             printf("[Serwer]: Sygnal nie obsluzony \n");
     }
@@ -86,13 +93,15 @@ int main(int argc, char* argv[]){
         perror("semget");
         exit(1);
     }
-    printf("OK\n");
+    printf("OK (id: %d)\n", semid);
 
     printf("[Serwer]: Inicjalizuję semafor... ");
+    arg.val = 1;
     if(semctl(semid, 0, SETVAL, arg) == -1){
-
+        perror("semctl");
+        exit(1);
     }
-
+    printf("OK \n");
 
     printf("[Serwer]: nacisnij Crtl^Z by wyswietlic stan serwisu\n");
     printf("[Serwer]: nacisnij Crtl^C by zakonczyc program\n");

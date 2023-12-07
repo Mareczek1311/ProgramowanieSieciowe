@@ -21,6 +21,7 @@ int main(int argc, char* argv[]){
     int post;
     int post_count;
     int* post_count_ptr;
+    int rozmiar;
 
    if(argc != 3){
         printf("--- WRONG NUMBER OF ARGUMENTS ---\n");
@@ -54,6 +55,8 @@ int main(int argc, char* argv[]){
 
     post_count = *post_count_ptr;
 
+    rozmiar = sizeof(struct database) + post_count * sizeof(struct post);
+
     printf("DOSTALEM %d wpisow \n", post_count);
 
 
@@ -63,12 +66,10 @@ int main(int argc, char* argv[]){
         exit(1);
     }
 
-    lock_sem(-1, semid, post_count);
+    //lock_sem(-1, semid, post_count);
     
-    printf("Loading...\n");
-
     // --- TWORZENIE PAMIECI WSPOLDZIELONEJ ---
-    if((shmid = shmget(key, SHM_SIZE, IPC_EXCL)) == -1){
+    if((shmid = shmget(key, rozmiar, IPC_EXCL)) == -1){
         perror("shmget");
         exit(1);
     }
@@ -77,14 +78,26 @@ int main(int argc, char* argv[]){
         perror("shmat");
         exit(1);
     }
+
+    if(db->posts == NULL){
+        perror("malloc");
+        exit(1);
+    }
+
+    printf("Dane struktury database: \n");
+    printf("    n: %d\n", db->n);
+    printf("    curr_server: %d\n", db->curr_server);
+    printf("    posts: %p\n", (void*)db->posts);
+    printf("    posts[0] value %s\n", db->posts[0].content);
+
     printf("Twitter 2.0 wita! (wersja C)\n");
-    printf("Wolnych %d wpisow (na %d)", post_count - db->curr_server, post_count);
+    printf("Wolnych %d wpisow (na %d) \n", post_count - db->curr_server, post_count);
 
     if(!isEmpty(db)){
         print_posts(db, 1);
-    }
+    }  
 
-    unlock_sem(-1, semid, post_count);
+    //unlock_sem(-1, semid, post_count);
 
     printf("Podaj akcje (N)owy wpis, (L)ike \n");
 

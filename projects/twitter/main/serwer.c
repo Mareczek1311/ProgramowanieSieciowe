@@ -72,7 +72,7 @@ int main(int argc, char* argv[]){
 
     int posts_count = atoi(argv[2]);
     global_posts_count = posts_count;
-    int rozmiar; // TRZEBA UZUPELNIC
+    int rozmiar = sizeof(struct database) + posts_count * sizeof(struct post);
     int* count_ptr;
 
     printf("[Serwer]: Twitter 2.0 (wersja A)\n");    
@@ -107,12 +107,12 @@ int main(int argc, char* argv[]){
 
     printf("OK(klucz: %d)\n", key);
 
-    printf("[Serwer]: Tworzę segment pamięci wspoldzielonej na 10 wpisow po 128b...  \n");
-    if((shmid = shmget(key, SHM_SIZE, 0644 | IPC_CREAT)) == -1){
+    printf("[Serwer]: Tworzę segment pamięci wspoldzielonej na %d wpisow po %db...  \n", posts_count, sizeof(struct post));
+    if((shmid = shmget(key, rozmiar, 0644 | IPC_CREAT)) == -1){
         perror("shmget");
         exit(1);
     }
-    printf("OK (id: %d, rozmiar: %db) \n", shmid, SHM_SIZE);
+    printf("OK (id: %d, rozmiar: %db) \n", shmid, rozmiar);
 
     printf("[Serwer]: Dolaczam pamiec wspolna... ");
     
@@ -121,6 +121,16 @@ int main(int argc, char* argv[]){
         exit(1);
     }
     
+    db->posts = (struct post*)malloc(sizeof(struct post) * posts_count);
+
+    if(db->posts == NULL){
+        perror("malloc");
+        exit(1);
+    }
+
+    strncpy(db->posts[0].content,"test", MSG_SIZE);
+    printf(" post[0].content: %s \n", db->posts[0].content);
+
     db->n = posts_count;
     db->curr_server = 0;
 

@@ -9,7 +9,6 @@
 #include <sys/types.h>
 //Wartosci sa na sztywno, nie zaleza od systemu
 
-#define SHM_SIZE 1248
 #define MSG_SIZE 60
 #define POSTS_COUNT 10
 
@@ -23,7 +22,7 @@ struct post{
 struct database{
     int n;
     int curr_server;
-    struct post posts[POSTS_COUNT];
+    struct post* posts;
 };
 
 union semun {

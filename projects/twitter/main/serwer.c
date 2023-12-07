@@ -11,11 +11,11 @@ int semid;
 void signal_handler(int signal){
     switch(signal){
         case SIGTSTP:
-            lock_sem(-1, semid, db->n);
+            lock_sem(-1, semid, POSTS_COUNT);
 
             print_posts(db, 0);
 
-            unlock_sem(-1, semid, db->n);
+            unlock_sem(-1, semid, POSTS_COUNT);
             break;
 
         case SIGINT:
@@ -24,15 +24,15 @@ void signal_handler(int signal){
                 perror("shmdt");
                 exit(1);
             }
-            printf("(Odlaczenie shm: OK ");
+            printf("(Odlaczenie shm: OK \n");
 
             if(shmctl(shmid, IPC_RMID, 0) == -1){
                 perror("shmctl remove"); 
                 exit(1);
             }
-            printf(", usuniecie shm: OK");
+            printf(", usuniecie shm: OK \n");
             
-            if (semctl(semid, db->n, IPC_RMID, arg) == -1) {
+            if (semctl(semid, POSTS_COUNT, IPC_RMID, arg) == -1) {
                 perror("semctl");
                 exit(1);
             }
@@ -86,20 +86,21 @@ int main(int argc, char* argv[]){
         perror("shmat");
         exit(1);
     }
-    db->n = POSTS_COUNT;
-
+    
+    db->n = 9;
     db->curr_server = 0;
 
-    for(int i=0; i<db->n; i++){
+
+    for(int i=0; i<POSTS_COUNT; i++){
         db->posts[i].isSet = 0;
     }
 
     printf("OK (adres: %p) \n", (void*)db);
 
     // ---TWORZENIE SEMAFORA--- 
-    printf("[Serwer]: Tworzę %d semaforow...  \n", db->n);
+    printf("[Serwer]: Tworzę %d semaforow...  \n", POSTS_COUNT);
 
-    if ((semid = semget(key, db->n, 0666 | IPC_CREAT)) == -1) {
+    if ((semid = semget(key, POSTS_COUNT, 0666 | IPC_CREAT)) == -1) {
         perror("semget");
         exit(1);
     }
@@ -107,7 +108,7 @@ int main(int argc, char* argv[]){
 
     printf("[Serwer]: Inicjalizuję semafory... ");
     
-    for (int i = 0; i < db->n; i++) {
+    for (int i = 0; i < POSTS_COUNT; i++) {
         if (semctl(semid, i, SETVAL, 1) == -1) {
             perror("semctl");
             exit(1);

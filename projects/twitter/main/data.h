@@ -77,7 +77,7 @@ void lock_sem(int sem, int semid, int msg_count){
             operacje_blokujace[i].sem_op = -1; // Blokowanie semafora
             operacje_blokujace[i].sem_flg = SEM_UNDO;
         }
-        if (semop(semid, operacje_blokujace, POSTS_COUNT) == -1) {
+        if (semop(semid, operacje_blokujace, 1) == -1) {
             perror("Blad semop (blokowanie)");
             exit(EXIT_FAILURE);
         }
@@ -107,7 +107,7 @@ void unlock_sem(int sem, int semid, int msg_count){
             operacje_odblokowujace[i].sem_flg = SEM_UNDO;
         }
 
-        if (semop(semid, operacje_odblokowujace, POSTS_COUNT) == -1) {
+        if (semop(semid, operacje_odblokowujace, 1) == -1) {
             perror("Blad semop (odblokowanie)");
             exit(EXIT_FAILURE);
         }

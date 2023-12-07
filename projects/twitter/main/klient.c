@@ -32,7 +32,7 @@ int main(int argc, char* argv[]){
     }
 
     // --- TWORZENIE SEMAFOROW ---
-    if((semid = semget(key, db->n, 0666 | IPC_EXCL)) == -1){
+    if((semid = semget(key, POSTS_COUNT, 0666 | IPC_EXCL)) == -1){
         perror("semget");
         exit(1);
     }
@@ -54,7 +54,7 @@ int main(int argc, char* argv[]){
 
     */
 
-    lock_sem(-1, semid, db->n);
+    lock_sem(-1, semid, POSTS_COUNT);
     
     printf("Loading...\n");
 
@@ -68,15 +68,14 @@ int main(int argc, char* argv[]){
         perror("shmat");
         exit(1);
     }
-
     printf("Twitter 2.0 wita! (wersja C)\n");
-    printf("Wolnych %d wpisow (na %d)", db->n-db->curr_server, db->n);
+    printf("Wolnych %d wpisow (na %d)", POSTS_COUNT - db->curr_server, POSTS_COUNT);
 
     if(!isEmpty(db)){
         print_posts(db, 1);
     }
 
-    unlock_sem(-1, semid, db->n);
+    unlock_sem(-1, semid, POSTS_COUNT);
 
     printf("Podaj akcje (N)owy wpis, (L)ike \n");
 
@@ -84,8 +83,10 @@ int main(int argc, char* argv[]){
 
     switch(option){
         case 'N':
+            lock_sem(db->curr_server, semid, POSTS_COUNT);
+
             //Brakuje sprawdzenia czy jest miejsce na nowy wpis
-            if(db->curr_server == db->n){
+            if(db->curr_server == POSTS_COUNT){
                 printf("Brak miejsca na nowy wpis\n");
                 break;
             }
@@ -98,16 +99,15 @@ int main(int argc, char* argv[]){
             fgets(msg, sizeof(msg), stdin);
             msg[strcspn(msg, "\n")] = '\0';
             
-            lock_sem(db->curr_server, semid, db->n);
 
-            strncpy(db->posts[db->curr_server]->content, msg, MSG_SIZE);
-            strncpy(db->posts[db->curr_server]->username, username, MSG_SIZE);
-            db->posts[db->curr_server]->likes = 0;
-            db->posts[db->curr_server]->isSet = 1;
+            strncpy(db->posts[db->curr_server].content, msg, MSG_SIZE);
+            strncpy(db->posts[db->curr_server].username, username, MSG_SIZE);
+            db->posts[db->curr_server].likes = 0;
+            db->posts[db->curr_server].isSet = 1;
 
-            sleep(10);
+            sleep(3);
 
-            unlock_sem(db->curr_server, semid, db->n);
+            unlock_sem(db->curr_server, semid, POSTS_COUNT);
 
             db->curr_server++;
             //Nowy wpis
@@ -120,19 +120,20 @@ int main(int argc, char* argv[]){
             printf("> ");
             scanf("%d", &post);
             post-=1;
-            
-            if(post > db->curr_server && post < 0){
-                printf("Podany wpis nie istnieje\n");
-                break;
+            if(post >= db->curr_server || post < 0){
+                if(db->posts[post].isSet == 0){
+                    printf("Podany wpis nie istnieje\n");
+                    break;
+                }
             }
 
-            lock_sem(post, semid, db->n);
+            lock_sem(post, semid, POSTS_COUNT);
 
             if(post<db->curr_server){
-                db->posts[post]->likes++;
+                db->posts[post].likes++;
             }
             
-            unlock_sem(post, semid, db->n);
+            unlock_sem(post, semid, POSTS_COUNT);
 
             break;
         default:

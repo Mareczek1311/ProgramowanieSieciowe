@@ -70,9 +70,9 @@ void print_posts(struct database* db, int mode){
 void lock_sem(int sem, int semid, int msg_count){
     //Zablokowanie semaforow (sem=-1 kazdy, 0 <= sem < POST_COUNT okreslony)
     if(sem == -1){
-        struct sembuf operacje_blokujace[POSTS_COUNT];
+        struct sembuf operacje_blokujace[msg_count];
         
-        for(int i=0; i<POSTS_COUNT; i++){
+        for(int i=0; i<msg_count; i++){
             operacje_blokujace[i].sem_num = i;
             operacje_blokujace[i].sem_op = -1; // Blokowanie semafora
             operacje_blokujace[i].sem_flg = SEM_UNDO;
@@ -99,9 +99,9 @@ void lock_sem(int sem, int semid, int msg_count){
 void unlock_sem(int sem, int semid, int msg_count){
     //Odblokowanie semaforow (sem=-1 kazdy, 0 <= sem < POST_COUNT okreslony)
     if(sem == -1){
-        struct sembuf operacje_odblokowujace[POSTS_COUNT];
+        struct sembuf operacje_odblokowujace[msg_count];
 
-        for (int i = 0; i < POSTS_COUNT; ++i) {
+        for (int i = 0; i < msg_count; ++i) {
             operacje_odblokowujace[i].sem_num = i;
             operacje_odblokowujace[i].sem_op = 1; // Odblokowanie semafora
             operacje_odblokowujace[i].sem_flg = SEM_UNDO;

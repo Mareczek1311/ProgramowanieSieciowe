@@ -127,9 +127,6 @@ int main(int argc, char* argv[]){
         exit(1);
     }
 
-    //db->posts = (struct post*)malloc(sizeof(struct post) * posts_count);
-
-//    db->posts = (struct post*) malloc(sizeof(struct post) * posts_count);
     db->n = posts_count;
     db->curr_server = 0;
     for (int i = 0; i < posts_count; ++i) {
@@ -147,15 +144,6 @@ int main(int argc, char* argv[]){
     }
     printf("OK (id: %d)\n", semid);
 
-    printf("[Serwer]: Inicjalizuję semafory... ");
-
-    for (int i = 0; i < posts_count; i++) {
-        if (semctl(semid, i, SETVAL, 1) == -1) {
-            perror("semctl");
-            exit(1);
-        }
-    }
-    printf("OK \n");
 
     printf("[Serwer]: nacisnij Crtl^Z by wyswietlic stan serwisu\n");
     printf("[Serwer]: nacisnij Crtl^C by zakonczyc program\n");

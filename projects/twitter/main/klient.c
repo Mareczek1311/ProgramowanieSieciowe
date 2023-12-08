@@ -13,6 +13,33 @@ struct sembuf sb;
 //argv[1] - sciezka_do_pliku
 //argv[2] - username
 
+int lock(int semid, int posts_count){
+    struct sembuf sem_op;
+
+    for (int i = 0; i < posts_count; ++i) {
+        // Sprawdź, czy semafor jest zajęty
+        sem_op.sem_num = i;            // Numer semafora w grupie
+        sem_op.sem_op = 0;             // Czekaj, aż semafor będzie równy 0
+        sem_op.sem_flg = IPC_NOWAIT;   // Nie czekaj, jeśli semafor jest zajęty
+
+        if (semop(semid, &sem_op, 1) == -1) {
+            perror("semop");
+            printf("Semafor %d jest zajęty.\n", i);
+        } else {
+            // Zajmij semafor
+            sem_op.sem_op = 1;  // Zajmij semafor (inkrementuj wartość)
+            if (semop(semid, &sem_op, 1) == -1) {
+                perror("semop");
+                printf("Nie udało się zająć semafora %d.\n", i);
+            } else {
+                printf("Semafor %d został zajęty.\n", i);
+                return i;
+            }
+        }
+    }
+    return -1;
+}
+
 int main(int argc, char* argv[]){
 
     char option;
@@ -22,6 +49,7 @@ int main(int argc, char* argv[]){
     int post_count;
     int* post_count_ptr;
     size_t rozmiar;
+    int locked;
 
    if(argc != 3){
         printf("--- WRONG NUMBER OF ARGUMENTS ---\n");
@@ -69,7 +97,7 @@ int main(int argc, char* argv[]){
         exit(1);
     }
 
-    lock_sem(-1, semid, post_count);
+    //lock_sem(-1, semid, post_count);
 
     // --- TWORZENIE PAMIECI WSPOLDZIELONEJ ---
     if((shmid = shmget(key, rozmiar, 0666)) == -1){
@@ -96,7 +124,7 @@ int main(int argc, char* argv[]){
         print_posts(db, 1);
     }
 
-    unlock_sem(-1, semid, post_count);
+    //unlock_sem(-1, semid, post_count);
 
     printf("Podaj akcje (N)owy wpis, (L)ike \n");
 
@@ -106,8 +134,14 @@ int main(int argc, char* argv[]){
         case 'N':
 
 
-            lock_sem(db->curr_server, semid, post_count);
+            locked = lock(semid, post_count);
 
+            if(locked == -1){
+                printf("Brak miejsca na nowy wpis\n");
+                break;
+            }
+
+            printf("Zablokowalem %d semafor \n" ,locked);
             if(db->curr_server >= post_count){
                 printf("Brak miejsca na nowy wpis\n");
                 break;
@@ -121,12 +155,12 @@ int main(int argc, char* argv[]){
             msg[strcspn(msg, "\n")] = '\0';
 
 
-            strncpy(db->posts[db->curr_server].content, msg, MSG_SIZE);
-            strncpy(db->posts[db->curr_server].username, username, MSG_SIZE);
-            db->posts[db->curr_server].likes = 0;
-            db->posts[db->curr_server].isSet = 1;
+            strncpy(db->posts[locked].content, msg, MSG_SIZE);
+            strncpy(db->posts[locked].username, username, MSG_SIZE);
+            db->posts[locked].likes = 0;
+            db->posts[locked].isSet = 1;
 
-            unlock_sem(db->curr_server, semid, post_count);
+            unlock_sem(locked, semid, post_count);
 
             db->curr_server++;
             break;

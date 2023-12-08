@@ -22,7 +22,7 @@ struct post{
 struct database{
     int n;
     int curr_server;
-    struct post* posts;
+    struct post posts[];
 };
 
 union semun {
@@ -70,7 +70,7 @@ void lock_sem(int sem, int semid, int msg_count){
     //Zablokowanie semaforow (sem=-1 kazdy, 0 <= sem < POST_COUNT okreslony)
     if(sem == -1){
         struct sembuf operacje_blokujace[msg_count];
-        
+
         for(int i=0; i<msg_count; i++){
             operacje_blokujace[i].sem_num = i;
             operacje_blokujace[i].sem_op = -1; // Blokowanie semafora
@@ -85,14 +85,14 @@ void lock_sem(int sem, int semid, int msg_count){
         struct sembuf sb;
 
         sb.sem_num = sem;
-        sb.sem_op = -1; 
+        sb.sem_op = -1;
         sb.sem_flg = 0;
         if (semop(semid, &sb, 1) == -1) {
             perror("semop");
             exit(1);
         }
     }
-    
+
 }
 
 void unlock_sem(int sem, int semid, int msg_count){
@@ -115,7 +115,7 @@ void unlock_sem(int sem, int semid, int msg_count){
         struct sembuf sb;
 
         sb.sem_num = sem;
-        sb.sem_op = 1; 
+        sb.sem_op = 1;
         sb.sem_flg = 0;
         if (semop(semid, &sb, 1) == -1) {
             perror("semop");

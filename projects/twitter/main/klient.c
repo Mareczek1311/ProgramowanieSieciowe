@@ -2,11 +2,11 @@
 
 key_t key;
 key_t key2;
-    
+
 int shmid;
 int shmid2;
 struct database* db;
-    
+
 int semid;
 struct sembuf sb;
 
@@ -21,7 +21,7 @@ int main(int argc, char* argv[]){
     int post;
     int post_count;
     int* post_count_ptr;
-    int rozmiar;
+    size_t rozmiar;
 
    if(argc != 3){
         printf("--- WRONG NUMBER OF ARGUMENTS ---\n");
@@ -53,11 +53,14 @@ int main(int argc, char* argv[]){
         exit(1);
     }
 
+
+
     post_count = *post_count_ptr;
 
-    rozmiar = sizeof(struct database) + post_count * sizeof(struct post);
+    printf("Ilosc postow: %d \n", post_count);
 
-    printf("DOSTALEM %d wpisow \n", post_count);
+    rozmiar = sizeof(struct database) + post_count * sizeof(struct post);
+//    printf("DOSTALEM %d wpisow \n", post_count);
 
 
     // --- TWORZENIE SEMAFOROW ---
@@ -66,15 +69,16 @@ int main(int argc, char* argv[]){
         exit(1);
     }
 
-    //lock_sem(-1, semid, post_count);
-    
+    lock_sem(-1, semid, post_count);
+
     // --- TWORZENIE PAMIECI WSPOLDZIELONEJ ---
-    if((shmid = shmget(key, rozmiar, IPC_EXCL)) == -1){
+    if((shmid = shmget(key, rozmiar, 0666)) == -1){
         perror("shmget");
         exit(1);
     }
 
-    if((db = (struct database*) shmat(shmid, (void*)0, 0)) == (void *) -1){
+    db = (struct database *)shmat(shmid, NULL, 0);
+    if (db == (struct database *)(-1)) {
         perror("shmat");
         exit(1);
     }
@@ -84,20 +88,15 @@ int main(int argc, char* argv[]){
         exit(1);
     }
 
-    printf("Dane struktury database: \n");
-    printf("    n: %d\n", db->n);
-    printf("    curr_server: %d\n", db->curr_server);
-    printf("    posts: %p\n", (void*)db->posts);
-    printf("    posts[0] value %s\n", db->posts[0].content);
 
     printf("Twitter 2.0 wita! (wersja C)\n");
     printf("Wolnych %d wpisow (na %d) \n", post_count - db->curr_server, post_count);
 
     if(!isEmpty(db)){
         print_posts(db, 1);
-    }  
+    }
 
-    //unlock_sem(-1, semid, post_count);
+    unlock_sem(-1, semid, post_count);
 
     printf("Podaj akcje (N)owy wpis, (L)ike \n");
 
@@ -106,13 +105,13 @@ int main(int argc, char* argv[]){
     switch(option){
         case 'N':
 
+
+            lock_sem(db->curr_server, semid, post_count);
+
             if(db->curr_server >= post_count){
                 printf("Brak miejsca na nowy wpis\n");
                 break;
             }
-
-            lock_sem(db->curr_server, semid, post_count);
-
             printf("Napisz co chodzi ci po glowie: \n");
             printf("> ");
 
@@ -120,7 +119,7 @@ int main(int argc, char* argv[]){
             while ((c = getchar()) != '\n' && c != EOF);
             fgets(msg, sizeof(msg), stdin);
             msg[strcspn(msg, "\n")] = '\0';
-            
+
 
             strncpy(db->posts[db->curr_server].content, msg, MSG_SIZE);
             strncpy(db->posts[db->curr_server].username, username, MSG_SIZE);
@@ -149,7 +148,7 @@ int main(int argc, char* argv[]){
             if(post<db->curr_server){
                 db->posts[post].likes++;
             }
-            
+
             unlock_sem(post, semid, post_count);
 
             break;

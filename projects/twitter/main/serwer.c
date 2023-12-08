@@ -29,11 +29,11 @@ void signal_handler(int signal){
             printf("(Odlaczenie shm: OK \n");
 
             if(shmctl(shmid, IPC_RMID, 0) == -1){
-                perror("shmctl remove"); 
+                perror("shmctl remove");
                 exit(1);
             }
             printf(", usuniecie shm: OK \n");
-            
+
             if (semctl(semid, global_posts_count, IPC_RMID, arg) == -1) {
                 perror("semctl");
                 exit(1);
@@ -42,7 +42,7 @@ void signal_handler(int signal){
 
             //USUWANIE DRUGIEGO SEGMENTU PAMIECI WSPOLDZIELONEJ ODPOWIEDZIALNEGO ZA ROZMIAR
             if(shmctl(shmid2, IPC_RMID, 0) == -1){
-                perror("shmctl remove"); 
+                perror("shmctl remove");
                 exit(1);
             }
 
@@ -52,7 +52,12 @@ void signal_handler(int signal){
             printf("[Serwer]: Sygnal nie obsluzony \n");
     }
 }
-
+void initializePost(struct post *p) {
+    p->likes = 0;
+    p->isSet = 0;
+    memset(p->content, 0, MSG_SIZE);
+    memset(p->username, 0, MSG_SIZE);
+}
 
 // argv[1] - nazwa_pliku
 // argv[2] - maksymalna_liczba_wiadomosci
@@ -72,10 +77,10 @@ int main(int argc, char* argv[]){
 
     int posts_count = atoi(argv[2]);
     global_posts_count = posts_count;
-    int rozmiar = sizeof(struct database) + posts_count * sizeof(struct post);
+    size_t rozmiar = sizeof(struct database) + posts_count * sizeof(struct post);
     int* count_ptr;
 
-    printf("[Serwer]: Twitter 2.0 (wersja A)\n");    
+    printf("[Serwer]: Twitter 2.0 (wersja A)\n");
 
     printf("[Serwer]: tworze klucz na podstawie pliku data.h... ");
 
@@ -83,7 +88,7 @@ int main(int argc, char* argv[]){
         perror("ftok");
         exit(1);
     }
-    
+
     //TWORZE DRUGI SEGMENT PAMIECI WSPOLDZIELONEJ ODPOWIEDZIALNY ZA ROZMIAR
     if((key2 = ftok(argv[1], 'B')) == -1){
         perror("ftok");
@@ -105,6 +110,7 @@ int main(int argc, char* argv[]){
         exit(1);
     }
 
+
     printf("OK(klucz: %d)\n", key);
 
     printf("[Serwer]: Tworzę segment pamięci wspoldzielonej na %d wpisow po %db...  \n", posts_count, sizeof(struct post));
@@ -115,32 +121,24 @@ int main(int argc, char* argv[]){
     printf("OK (id: %d, rozmiar: %db) \n", shmid, rozmiar);
 
     printf("[Serwer]: Dolaczam pamiec wspolna... ");
-    
+
     if((db = (struct database*) shmat(shmid, (void*)0, 0)) == (void *) -1){
         perror("shmat");
         exit(1);
     }
-    
-    db->posts = (struct post*)malloc(sizeof(struct post) * posts_count);
 
-    if(db->posts == NULL){
-        perror("malloc");
-        exit(1);
-    }
+    //db->posts = (struct post*)malloc(sizeof(struct post) * posts_count);
 
-    strncpy(db->posts[0].content,"test", MSG_SIZE);
-    printf(" post[0].content: %s \n", db->posts[0].content);
-
+//    db->posts = (struct post*) malloc(sizeof(struct post) * posts_count);
     db->n = posts_count;
     db->curr_server = 0;
-
-    for(int i=0; i<posts_count; i++){
-        db->posts[i].isSet = 0;
+    for (int i = 0; i < posts_count; ++i) {
+        initializePost(&db->posts[i]);
     }
 
     printf("OK (adres: %p) \n", (void*)db);
 
-    // ---TWORZENIE SEMAFOROW--- 
+    // ---TWORZENIE SEMAFOROW---
     printf("[Serwer]: Tworzę %d semaforow...  \n", posts_count);
 
     if ((semid = semget(key, posts_count, 0666 | IPC_CREAT)) == -1) {
@@ -150,7 +148,7 @@ int main(int argc, char* argv[]){
     printf("OK (id: %d)\n", semid);
 
     printf("[Serwer]: Inicjalizuję semafory... ");
-    
+
     for (int i = 0; i < posts_count; i++) {
         if (semctl(semid, i, SETVAL, 1) == -1) {
             perror("semctl");

@@ -18,26 +18,34 @@ int lock(int semid, int posts_count){
 
     for (int i = 0; i < posts_count; ++i) {
         // Sprawdź, czy semafor jest zajęty
-        sem_op.sem_num = i;            // Numer semafora w grupie
-        sem_op.sem_op = 0;             // Czekaj, aż semafor będzie równy 0
-        sem_op.sem_flg = IPC_NOWAIT;   // Nie czekaj, jeśli semafor jest zajęty
+        sem_op.sem_num = i;
+        sem_op.sem_op = -1;
+        sem_op.sem_flg = IPC_NOWAIT;
 
         if (semop(semid, &sem_op, 1) == -1) {
-            perror("semop");
-            printf("Semafor %d jest zajęty.\n", i);
-        } else {
-            // Zajmij semafor
-            sem_op.sem_op = 1;  // Zajmij semafor (inkrementuj wartość)
-            if (semop(semid, &sem_op, 1) == -1) {
-                perror("semop");
-                printf("Nie udało się zająć semafora %d.\n", i);
-            } else {
-                printf("Semafor %d został zajęty.\n", i);
-                return i;
-            }
+            //perror("semop");
+            //printf("Semafor %d jest zajęty.\n", i);
+        }
+        else if(db->posts[i].isSet == 1){
+            //printf("Pamiec %d jest juz zajeta \n", i);
+        }
+        else {
+            return i;
         }
     }
     return -1;
+}
+
+void releaseSemaphore(int semid, int semnum) {
+    struct sembuf sb;
+    sb.sem_num = semnum;
+    sb.sem_op = 1;
+    sb.sem_flg = 0;
+
+    if (semop(semid, &sb, 1) == -1) {
+        perror("semop");
+
+    }
 }
 
 int main(int argc, char* argv[]){
@@ -64,7 +72,6 @@ int main(int argc, char* argv[]){
         exit(1);
     }
 
-
     if((key2 = ftok(argv[1], 'A')) == -1){
         perror("ftok");
         exit(1);
@@ -81,23 +88,19 @@ int main(int argc, char* argv[]){
         exit(1);
     }
 
-
-
     post_count = *post_count_ptr;
 
-    printf("Ilosc postow: %d \n", post_count);
+    //printf("Ilosc postow: %d \n", post_count);
 
     rozmiar = sizeof(struct database) + post_count * sizeof(struct post);
-//    printf("DOSTALEM %d wpisow \n", post_count);
 
+    //printf("Rozmiar: %d \n", rozmiar);
 
     // --- TWORZENIE SEMAFOROW ---
     if((semid = semget(key, post_count, 0666 | IPC_EXCL)) == -1){
         perror("semget");
         exit(1);
     }
-
-    //lock_sem(-1, semid, post_count);
 
     // --- TWORZENIE PAMIECI WSPOLDZIELONEJ ---
     if((shmid = shmget(key, rozmiar, 0666)) == -1){
@@ -116,7 +119,6 @@ int main(int argc, char* argv[]){
         exit(1);
     }
 
-
     printf("Twitter 2.0 wita! (wersja C)\n");
     printf("Wolnych %d wpisow (na %d) \n", post_count - db->curr_server, post_count);
 
@@ -124,16 +126,12 @@ int main(int argc, char* argv[]){
         print_posts(db, 1);
     }
 
-    //unlock_sem(-1, semid, post_count);
-
     printf("Podaj akcje (N)owy wpis, (L)ike \n");
 
     scanf("%c", &option);
 
     switch(option){
         case 'N':
-
-
             locked = lock(semid, post_count);
 
             if(locked == -1){
@@ -141,11 +139,7 @@ int main(int argc, char* argv[]){
                 break;
             }
 
-            printf("Zablokowalem %d semafor \n" ,locked);
-            if(db->curr_server >= post_count){
-                printf("Brak miejsca na nowy wpis\n");
-                break;
-            }
+            //printf("Zablokowalem %d semafor \n" ,locked);
             printf("Napisz co chodzi ci po glowie: \n");
             printf("> ");
 
@@ -154,18 +148,17 @@ int main(int argc, char* argv[]){
             fgets(msg, sizeof(msg), stdin);
             msg[strcspn(msg, "\n")] = '\0';
 
-
             strncpy(db->posts[locked].content, msg, MSG_SIZE);
             strncpy(db->posts[locked].username, username, MSG_SIZE);
             db->posts[locked].likes = 0;
             db->posts[locked].isSet = 1;
 
-            unlock_sem(locked, semid, post_count);
+            releaseSemaphore(semid, locked);
 
             db->curr_server++;
+
             break;
         case 'L':
-
             printf("Ktory wpis chcesz polubic: \n");
             printf("> ");
             scanf("%d", &post);
@@ -177,13 +170,9 @@ int main(int argc, char* argv[]){
                 }
             }
 
-            lock_sem(post, semid, post_count);
-
             if(post<db->curr_server){
                 db->posts[post].likes++;
             }
-
-            unlock_sem(post, semid, post_count);
 
             break;
         default:

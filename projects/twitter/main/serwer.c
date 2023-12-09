@@ -13,45 +13,47 @@ int global_posts_count;
 void signal_handler(int signal){
     switch(signal){
         case SIGTSTP:
-            lock_sem(-1, semid, global_posts_count);
-
             print_posts(db, 0);
-
-            unlock_sem(-1, semid, global_posts_count);
             break;
 
         case SIGINT:
             printf("[Serwer]: Dostalem SIGINT -> koncze i sprzatam... ");
+
+            //ODLOCZENIE OD PAMIECI WSPOLDZIELONEJ ODPOWIEDZIALNEJ ZA PRZECHOWYWANIE POSTOW
             if(shmdt(db) == -1){
                 perror("shmdt");
                 exit(1);
             }
             printf("(Odlaczenie shm: OK \n");
 
+            //USUWANIE PAMIECI WSPOLDZIELONEJ ODPOWIEDZIALNEJ ZA PRZECHOWYWANIE POSTOW
             if(shmctl(shmid, IPC_RMID, 0) == -1){
                 perror("shmctl remove");
                 exit(1);
             }
             printf(", usuniecie shm: OK \n");
 
+            //USUWANIE N SEMAFOROW
             if (semctl(semid, global_posts_count, IPC_RMID, arg) == -1) {
                 perror("semctl");
                 exit(1);
             }
             printf(", usuniecie sem: OK) \n");
 
-            //USUWANIE DRUGIEGO SEGMENTU PAMIECI WSPOLDZIELONEJ ODPOWIEDZIALNEGO ZA ROZMIAR
+            //USUWANIE DRUGIEGO SEGMENTU PAMIECI WSPOLDZIELONEJ ODPOWIEDZIALNEGO ZA ILOSC POSTOW
             if(shmctl(shmid2, IPC_RMID, 0) == -1){
                 perror("shmctl remove");
                 exit(1);
             }
 
             exit(0);
-            //zakonczenie poprzedzone posprzataniem (sem pojedynczy, shm)
+            //zakonczenie poprzedzone posprzataniem (semy, shm, shm2)
         default:
             printf("[Serwer]: Sygnal nie obsluzony \n");
     }
 }
+
+//INICJALIZACJA POSTA
 void initializePost(struct post *p) {
     p->likes = 0;
     p->isSet = 0;
@@ -78,16 +80,16 @@ int main(int argc, char* argv[]){
     int posts_count = atoi(argv[2]);
     global_posts_count = posts_count;
     size_t rozmiar = sizeof(struct database) + posts_count * sizeof(struct post);
-    int* count_ptr;
+    int* count_ptr = &posts_count;
 
     printf("[Serwer]: Twitter 2.0 (wersja A)\n");
 
     printf("[Serwer]: tworze klucz na podstawie pliku data.h... ");
-
     if((key = ftok(argv[1], 'A')) == -1){
         perror("ftok");
         exit(1);
     }
+    printf("OK(klucz: %d)\n", key);
 
     //TWORZE DRUGI SEGMENT PAMIECI WSPOLDZIELONEJ ODPOWIEDZIALNY ZA ROZMIAR
     if((key2 = ftok(argv[1], 'B')) == -1){
@@ -109,9 +111,6 @@ int main(int argc, char* argv[]){
         perror("shmdt");
         exit(1);
     }
-
-
-    printf("OK(klucz: %d)\n", key);
 
     printf("[Serwer]: Tworzę segment pamięci wspoldzielonej na %d wpisow po %db...  \n", posts_count, sizeof(struct post));
     if((shmid = shmget(key, rozmiar, 0644 | IPC_CREAT)) == -1){
@@ -136,8 +135,7 @@ int main(int argc, char* argv[]){
     printf("OK (adres: %p) \n", (void*)db);
 
     // ---TWORZENIE SEMAFOROW---
-    printf("[Serwer]: Tworzę %d semaforow...  \n", posts_count);
-
+    printf("[Serwer]: Tworzę %d semaforow...  ", posts_count);
     if ((semid = semget(key, posts_count, 0666 | IPC_CREAT)) == -1) {
         perror("semget");
         exit(1);
@@ -145,17 +143,21 @@ int main(int argc, char* argv[]){
     printf("OK (id: %d)\n", semid);
 
 
+    printf("[Serwer]: Inicjalizacja semaforow... ");
+    union semun arg;
+    arg.val = 1;
+
+    for(int i=0; i<posts_count;i++){
+        if(semctl(semid, i, SETVAL, arg) == -1){
+            perror("semctl");
+            exit(1);
+        }
+    }
+
+    printf("OK \n");
+
     printf("[Serwer]: nacisnij Crtl^Z by wyswietlic stan serwisu\n");
     printf("[Serwer]: nacisnij Crtl^C by zakonczyc program\n");
-
-    /*
-    printf("Segment zawiera: \n");
-    printf("Username: %s \n", p->username);
-    printf("Content: %s \n", p->content);
-    printf("Likes: %d \n", p->likes);
-    */
-
-   //A JAK SERWER BEDZIE DZIALAC Z SEMAFOROW!!!!!!!!
 
     while(1){
         sleep(1);

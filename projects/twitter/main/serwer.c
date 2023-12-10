@@ -111,12 +111,12 @@ int main(int argc, char* argv[]){
         exit(1);
     }
 
-    printf("[Serwer]: Tworzę segment pamięci wspoldzielonej na %d wpisow po %db...  \n", posts_count, sizeof(struct post));
+    printf("[Serwer]: Tworzę segment pamięci wspoldzielonej na %d wpisow po %ldb...  \n", posts_count, sizeof(struct post));
     if((shmid = shmget(key, rozmiar, 0644 | IPC_CREAT)) == -1){
         perror("shmget");
         exit(1);
     }
-    printf("OK (id: %d, rozmiar: %db) \n", shmid, rozmiar);
+    printf("OK (id: %d, rozmiar: %ldb) \n", shmid, rozmiar);
 
     printf("[Serwer]: Dolaczam pamiec wspolna... ");
 

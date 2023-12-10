@@ -5,7 +5,6 @@ struct database* db;
 int shmid;
 int shmid2;
 
-//POJEDYNCZY SEMAFOR
 union semun arg;
 int semid;
 int global_posts_count;

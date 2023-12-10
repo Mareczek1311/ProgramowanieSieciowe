@@ -23,14 +23,14 @@ void signal_handler(int signal){
                 perror("shmdt");
                 exit(1);
             }
-            printf("(Odlaczenie shm: OK \n");
+            printf("(Odlaczenie shm: OK");
 
             //USUWANIE PAMIECI WSPOLDZIELONEJ ODPOWIEDZIALNEJ ZA PRZECHOWYWANIE POSTOW
             if(shmctl(shmid, IPC_RMID, 0) == -1){
                 perror("shmctl remove");
                 exit(1);
             }
-            printf(", usuniecie shm: OK \n");
+            printf(", usuniecie shm: OK");
 
             //USUWANIE N SEMAFOROW
             if (semctl(semid, global_posts_count, IPC_RMID, arg) == -1) {
@@ -88,7 +88,7 @@ int main(int argc, char* argv[]){
         perror("ftok");
         exit(1);
     }
-    printf("OK(klucz: %d)\n", key);
+    printf("OK(klucz: %ld)\n", key);
 
     //TWORZE DRUGI SEGMENT PAMIECI WSPOLDZIELONEJ ODPOWIEDZIALNY ZA ROZMIAR
     if((key2 = ftok(argv[1], 'B')) == -1){

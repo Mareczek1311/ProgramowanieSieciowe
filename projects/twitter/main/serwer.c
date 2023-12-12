@@ -73,8 +73,8 @@ int main(int argc, char* argv[]){
     signal(SIGTSTP, signal_handler);
     signal(SIGINT, signal_handler);
 
-    key_t key;
-    key_t key2;
+    int key;
+    int key2;
 
     int posts_count = atoi(argv[2]);
     global_posts_count = posts_count;
@@ -88,7 +88,7 @@ int main(int argc, char* argv[]){
         perror("ftok");
         exit(1);
     }
-    printf("OK(klucz: %ld)\n", key);
+    printf("OK(klucz: %d)\n", key);
 
     //TWORZE DRUGI SEGMENT PAMIECI WSPOLDZIELONEJ ODPOWIEDZIALNY ZA ROZMIAR
     if((key2 = ftok(argv[1], 'B')) == -1){

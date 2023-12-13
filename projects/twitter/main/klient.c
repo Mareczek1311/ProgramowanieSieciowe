@@ -114,11 +114,6 @@ int main(int argc, char* argv[]){
         exit(1);
     }
 
-    if(db->posts == NULL){
-        perror("malloc");
-        exit(1);
-    }
-
     printf("Twitter 2.0 wita! (wersja C)\n");
     printf("Wolnych %d wpisow (na %d) \n", post_count - db->curr_server, post_count);
 
@@ -163,8 +158,15 @@ int main(int argc, char* argv[]){
             printf("> ");
             scanf("%d", &post);
             post-=1;
-            if(post >= db->curr_server || post < 0){
-                if(db->posts[post].isSet == 0){
+            if(post >= db->curr_server || post <= 0){
+                if(post < 0){
+
+                    printf("Podany wpis nie istnieje\n");
+                    break;
+                }
+
+
+                if(db->posts[post].isSet == 0 ){
                     printf("Podany wpis nie istnieje\n");
                     break;
                 }

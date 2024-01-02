@@ -22,7 +22,7 @@ void get_request_and_reply(int sockfd){
     size_t addrlen = sizeof(struct sockaddr_storage);
 
     if((numbytes = recvfrom(sockfd, buffer, MAXBUFFER-1, 0, (struct sockaddr*) &their_addr, 
-                    (socklen_t*) &addrlen))){
+                    (socklen_t*) &addrlen)) == -1){
         perror("recvfrom");
         exit(1);
     }
@@ -35,7 +35,13 @@ void get_request_and_reply(int sockfd){
         perror("write");
         exit(1);
     }
-    
+
+    if((numbytes = sendto(sockfd, buffer, numbytes, 0, (struct sockaddr*) &their_addr, addrlen)) == -1){
+        perror("sendto");
+        exit(1);
+    }
+
+
 }
 
 int setup_server(char *addr, char *port){

@@ -13,7 +13,7 @@ struct my_msg{
     char text[255];
 };
 
-int main() {
+int main(int argc, char* argv[]) {
 
 	int sockfd;
 	u_short my_port;
@@ -22,6 +22,10 @@ int main() {
     struct sockaddr_in client_addr;
     char ip[INET_ADDRSTRLEN];
     socklen_t addr_len = sizeof(client_addr);
+    
+    struct    in_addr my_ip;
+    inet_pton(AF_INET, argv[1], &my_ip);
+
 
 	/* wybieram "unikalny" numer portu dla serwera */
 	my_port = 5000 + (getpid() % 10000);
@@ -32,11 +36,13 @@ int main() {
 	/* podpinam gniazdo pod  konkretny "adres-lokalny" 
 	   i "proces-lokalny" (= port) */
 	server_addr.sin_family	    = AF_INET;           /* IPv4 */
-	server_addr.sin_addr.s_addr = htonl(INADDR_ANY); /* dowolny (moj) interfejs */
+	server_addr.sin_addr = my_ip; /* dowolny (moj) interfejs */
 	server_addr.sin_port        = htons(my_port);    /* moj port */
 	bind(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
+    
 
 	printf("[Serwer]: Utworzone gniazdo, slucham na porcie: %d\n", my_port); 
+    printf("[Serwer]: IP: %s \n", argv[1]);    
 
 	while(1) {
 		recvfrom(sockfd, &msg, sizeof(msg), 0,(struct sockaddr *) &client_addr, &addr_len);

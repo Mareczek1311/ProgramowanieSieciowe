@@ -168,19 +168,18 @@ int setup_server(char *address, char *port, int *who){
     
     int sockfd;
     struct sockaddr_in addr;
+    struct sockaddr_in addr_out;
     struct in_addr naddr;
 
     char data[BUFLEN];
     int numbytes;
     int num;
 
-    if (inet_pton(AF_INET, address, &naddr) < 1){
-        perror("inet_pton");
-        exit(1);
-    }
+
     bzero(&addr, sizeof(addr));
     addr.sin_family = AF_INET;
-    addr.sin_addr = naddr;
+    //addr.sin_addr = naddr;
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
     addr.sin_port = htons(atoi(port));
 
     if((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1){
@@ -193,26 +192,42 @@ int setup_server(char *address, char *port, int *who){
     if(bind(sockfd, (struct sockaddr*) &addr, sizeof(addr)) == -1){
         perror("bind"); // serwer juz zostal utworzony
     }
-    else{
-        printf("Serwer dziala...\n");
-        *who = 0;
-        
-        printf("Propozycja gry wyslana.\n");
+    
+    *who = 0;
 
-        return sockfd;
-    }
-    if((connect(sockfd, (struct sockaddr*) &addr, sizeof(addr))) < 0){
-        perror("connect"); //BRAK HOSTA!!!!!!!
+    printf("Propozycja gry wyslana.\n");
+
+   /* 
+    */
+
+
+    if (inet_pton(AF_INET, address, &naddr) < 1){
+        perror("inet_pton");
         exit(1);
     }
-    
-    connected = 1;
-    write(sockfd, "0", 1);
-    
-    printf("Propozycja gry wyslana.\n");
-    
-    *who = 1;
 
+    bzero(&addr, sizeof(addr));
+    addr_out.sin_family = AF_INET;
+    addr_out.sin_addr = naddr;
+    addr_out.sin_port = htons(atoi(port));
+
+    if(sendto(sockfd, "", 0, 0, (struct sockaddr*)&addr, sizeof(addr)) == -1){
+        perror("sendto");
+    }
+    else{
+        
+        if((connect(sockfd, (struct sockaddr*) &addr, sizeof(addr))) < 0){
+            perror("connect"); //BRAK HOSTA!!!!!!!
+            exit(1);
+        }
+
+        connected = 1;
+        write(sockfd, "0", 1);
+
+        printf("Propozycja gry wyslana.\n");
+
+        *who = 1;
+    }
     return sockfd;
 }
 

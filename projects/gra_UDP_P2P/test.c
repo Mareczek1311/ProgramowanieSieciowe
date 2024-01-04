@@ -19,6 +19,8 @@
 
 #define BUFLEN 1024
 
+//0 server || 1 klient
+int who;
 int connected = 0;
 int got_move = 0;
 int score = 0;
@@ -193,8 +195,6 @@ int setup_server(char *address, char *port, int *who){
         perror("bind"); // serwer juz zostal utworzony
     }
     
-    *who = 0;
-
     printf("Propozycja gry wyslana.\n");
 
    /* 
@@ -211,9 +211,7 @@ int setup_server(char *address, char *port, int *who){
     addr_out.sin_addr = naddr;
     addr_out.sin_port = htons(atoi(port));
 
-    if(sendto(sockfd, "", 0, 0, (struct sockaddr*)&addr, sizeof(addr)) == -1){
-        perror("sendto");
-    }
+    /*
     else{
         
         if((connect(sockfd, (struct sockaddr*) &addr, sizeof(addr))) < 0){
@@ -228,9 +226,39 @@ int setup_server(char *address, char *port, int *who){
 
         *who = 1;
     }
+    */
     return sockfd;
 }
 
+
+void receiv(int sockfd){
+   
+    char data[BUFLEN];
+    int numbytes; 
+    struct sockaddr_storage their_addr;
+    size_t addr_len = sizeof(struct sockaddr_storage);
+
+    if((numbytes = recvfrom(sockfd, data, BUFLEN - 1, 0, 
+                    (struct sockaddr*)&their_addr,
+                    (socklen_t *)&addr_len)) == -1){
+        perror("recvfrom");
+        exit(1);
+    }
+    data[numbytes] = '\0';
+    if(!strcmp(data, "0")){
+        who = 0;
+        connected = 1;
+    }
+    else{
+        who = 1;
+        connected = 1;
+    }
+
+    if(sendto(sockfd, "1", 1, 0, (struct sockaddr*)&their_addr, addr_len) == -1){
+        perror("sendto");
+        exit(1);
+    }
+}
 
 int main(int argc, char* argv[]){
    
@@ -243,14 +271,16 @@ int main(int argc, char* argv[]){
     
     int sockfd;
 
-    //0 server || 1 klient
-    int who;
-
-    
+ 
     sockfd = setup_server(argv[1], argv[2], &who);
     
     
     while(1){
+
+        if(connected == 0){
+            receiv(sockfd);            
+        }
+
         get_request_and_respond(sockfd, who);        
     }
 

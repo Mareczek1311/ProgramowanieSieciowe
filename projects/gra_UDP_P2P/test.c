@@ -116,7 +116,6 @@ void get_request_and_respond(int sockfd, int who){
     struct sockaddr_storage their_addr;
     size_t addr_len = sizeof(struct sockaddr_storage);
     int curr_score;
-
     
     //Start gry
     //PROBLEM !!!!!!!!!!!!!!!!!!!!!!!! --- DZIALA TO TYLKO NA POCZATKU
@@ -169,17 +168,19 @@ int setup_server(char *address, char *port, int *who){
     
     int sockfd;
     struct sockaddr_in addr;
+    struct in_addr naddr;
 
-    struct sockaddr_storage their_addr;
-    size_t addr_len = sizeof(struct sockaddr_storage);
-    
     char data[BUFLEN];
     int numbytes;
     int num;
 
+    if (inet_pton(AF_INET, address, &naddr) < 1){
+        perror("inet_pton");
+        exit(1);
+    }
     bzero(&addr, sizeof(addr));
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = INADDR_ANY;
+    addr.sin_addr = naddr;
     addr.sin_port = htons(atoi(port));
 
     if((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1){

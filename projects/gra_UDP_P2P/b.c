@@ -10,8 +10,6 @@
 
 //TO DO
 //
-///Sprawdzenie czy policzylismy do 50
-///obsluga komendy "koniec"
 ///
 ///no i dla wersji "A" asynchronicznosc
 ///

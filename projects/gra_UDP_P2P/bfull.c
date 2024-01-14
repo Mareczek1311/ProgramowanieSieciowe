@@ -6,6 +6,10 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/un.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 //DELETE COMMS: "temp"
 
 //TO DO
@@ -34,6 +38,7 @@ struct sockaddr_in other_addr;
 size_t addr_len = sizeof(struct sockaddr_storage);
 
 char enemy_nickname[BUFLEN];
+char nickname_ip[INET_ADDRSTRLEN];
 char enemy_address[INET_ADDRSTRLEN];
 
 
@@ -376,9 +381,14 @@ int setup_server(char *address, char *port){
     me_addr.sin_port = htons(atoi(port));
     me_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    if (inet_pton(AF_INET, address, &naddr) < 1){
-        perror("inet");
-        exit(1);
+    if (inet_pton(AF_INET, address, &naddr) != 1) {
+        struct hostent *host = gethostbyname(address);
+        if (host == NULL) {
+            fprintf(stderr, "Nie można rozwiązać nazwy domeny.\n");
+            exit(1);
+        }
+        naddr = *(struct in_addr *) host->h_addr;
+	inet_ntop(AF_INET, &host->h_addr, enemy_address, INET_ADDRSTRLEN);
     }
 
 
@@ -430,7 +440,7 @@ int main(int argc, char* argv[]){
         fprintf(stderr, "usage: ip port\n");
         exit(1);
     } 
-    
+  
     srand(time(NULL));
     char opcja[BUFLEN];
     
@@ -438,9 +448,11 @@ int main(int argc, char* argv[]){
 
     printf("Gra w 50, wersja B \n");
     
-    printf("Rozpoczynam gre z %s. Napisz ""koniec"" by zakonczyc lub ""wynik"" by wyswietlic aktualny wynik \n", argv[1]); 
     sockfd = setup_server(argv[1], argv[2]);
-    
+    printf("Rozpoczynam gre z %s. Napisz ""koniec"" by zakonczyc lub ""wynik"" by wyswietlic aktualny wynik \n", enemy_address); 
+
+
+
     while(1){
         
         if(connected == 0){
@@ -451,7 +463,7 @@ int main(int argc, char* argv[]){
                     send_nickname(sockfd, argv[3]);
                 }
                 else{
-                    send_nickname(sockfd, argv[1]);
+                    send_nickname(sockfd, nickname_ip);
                 }
                 receive_nickname(sockfd);
             }else{
@@ -460,7 +472,7 @@ int main(int argc, char* argv[]){
                     send_nickname(sockfd, argv[3]);
                 }
                 else{
-                    send_nickname(sockfd, argv[1]);
+                    send_nickname(sockfd, nickname_ip);
                 }
             }
         }

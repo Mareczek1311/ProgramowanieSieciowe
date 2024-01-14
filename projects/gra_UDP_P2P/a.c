@@ -6,8 +6,13 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/un.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 //DELETE COMMS: "temp"
-
+       #include <signal.h>
+#include <sys/wait.h>
 //TO DO
 //
 ///
@@ -34,8 +39,11 @@ struct sockaddr_in other_addr;
 size_t addr_len = sizeof(struct sockaddr_storage);
 
 char enemy_nickname[BUFLEN];
+char nickname_ip[INET_ADDRSTRLEN];
 char enemy_address[INET_ADDRSTRLEN];
 
+int num_of_childs;
+int currFlag = 0;	
 
 void print_global(){
     printf("==============\n");
@@ -242,36 +250,33 @@ int receive_option(int sockfd){
 
 int make_move(int sockfd){
     
-    char option[BUFLEN];
-    int num;
+	char option[BUFLEN];
+	int num;
 
-    while(1){
-        printf(">");
-        scanf("%s", option);
-        
-        if(sscanf(option, "%d", &num) != 1){
-            
-            if(!strcmp(option, "wynik")){
-                printf("Ty %d : %d %s \n", my_score, enemy_score, enemy_nickname);
-            }
-            else if(!strcmp(option, "koniec")){
-                return 4;
-            }
-            else{
-                printf("Brak takiej opcji \n");
-            }
-        }
-        else{
-            if((num - score) > 10 || (num - score) <= 0 || num > 50){
-                printf("Takiej wartosci nie mozesz wybrac! \n");
-            }
-            else{
-                score = num;
-                break;
-            }
-        }
+	printf(">");
+	scanf("%s", option);
 
-    }
+	if(sscanf(option, "%d", &num) != 1){
+
+		if(!strcmp(option, "wynik")){
+			printf("Ty %d : %d %s \n", my_score, enemy_score, enemy_nickname);
+		}
+		else if(!strcmp(option, "koniec")){
+			return 4;
+		}
+		else{
+			printf("Brak takiej opcji \n");
+		}
+	}
+	else{
+		if((num - score) > 10 || (num - score) <= 0 || num > 50){
+			printf("Takiej wartosci nie mozesz wybrac! \n");
+		}
+		else{
+			score = num;
+		}
+	}
+
 
     if(score == 50){
         return 2;
@@ -294,66 +299,127 @@ void restart_game(){
     }
 }
 
+int pid1 = 1, pid2 = 1;
+
+int is_ended = 0;
+
+void v2(int sockfd){
+
+    char data[BUFLEN];
+    int numbytes;
+    int curr_score;
+    int opt;
+ 	num_of_childs = 0;
+
+   	while(1){
+		if(num_of_childs < 2){
+			if(currFlag == 0 && pid1 != 0 && pid2 != 0){
+				currFlag = 1;
+				pid1 = fork();	
+				num_of_childs++;
+				if(pid1 == 0){
+					//receive optioni
+					
+
+					opt = receive_option(sockfd);
+
+					if(opt == 1){
+						receive_points(sockfd);
+
+						got_move = 1;
+						printf("%s podal wartoscc %d, podaj kolejna wartosc.\n", enemy_nickname, score);
+					}
+					else if(opt == 2){
+						enemy_score += 1;  
+						printf("Przegrana!\n");
+						restart_game();
+					}
+					else if(opt == 4){
+						printf("%s zakonczyl gre, mozesz poczekac na kolejnego gracza\n", enemy_address);
+
+						score = 0;
+						first_move = 1;
+						is_started = 0;
+						connected = 0;
+						is_host = 1;
+					}
+
+					kill(getppid(), 1);
+					exit(0);
+				}
+			}
+			if(currFlag == 1 && pid1 != 0 && pid2 != 0){
+				currFlag = 0;
+				pid2 = fork();
+				num_of_childs++;
+				if(pid2 == 0){
+					//options selection
+						if(got_move == 1 && is_started == 0 && is_host == first_move){
+
+							score = (rand() % 10) + 1;
+
+							printf("Losowa wartosc poczatkowa: %d, podaj kolejna wartosc.\n", score); 
+
+							is_started = 1;
+						}
+
+					while(1){
+
+						opt = make_move(sockfd);
+						send_option(sockfd, opt);
+
+
+						if(opt == 1 && got_move == 0){
+							printf("Teraz tura gracza %s, poczekaj na swoja kolej.\n", enemy_nickname);
+						}
+						else if(opt == 1){
+							send_points(sockfd);
+							got_move = 0;
+
+							break;
+						}
+						else if(opt == 2){
+							//send_win(sockfd);
+							my_score += 1;
+							printf("Wygrana!\n");
+							restart_game();
+							break;
+						}
+						else if(opt == 4){
+							exit(0);
+							//jakis exit=1??????
+							is_ended=1;
+						}
+
+					}
+					kill(getppid(), 2);
+					exit(0);	
+				}
+			
+			}
+		}
+  		if(is_ended == 1){
+			close(sockfd);
+			exit(0);	
+		}
+	} 
+
+}
+
+
 void get_request_and_respond(int sockfd){
     char data[BUFLEN];
     int numbytes;
     int curr_score;
 
+
     int opt;
     
     if(got_move == 1){
 
-        if(is_started == 0 && is_host == first_move){
 
-            score = (rand() % 10) + 1;
-
-            printf("Losowa wartosc poczatkowa: %d, podaj kolejna wartosc.\n", score); 
-
-            is_started = 1;
-        }
-
-        opt = make_move(sockfd);
-        send_option(sockfd, opt);
-
-        if(opt == 1){
-            send_points(sockfd);
-            got_move = 0;
-
-        }
-        else if(opt == 2){
-            //send_win(sockfd);
-            my_score += 1;
-            printf("Wygrana!\n");
-            restart_game();
-        }
-        else if(opt == 4){
-            close(sockfd);
-            exit(0);
-        }
     }
     else{
-        opt = receive_option(sockfd);
-
-        if(opt == 1){
-            receive_points(sockfd);
-
-            got_move = 1;
-            printf("%s podal wartoscc %d, podaj kolejna wartosc.\n", enemy_nickname, score);
-        }
-        else if(opt == 2){
-            enemy_score += 1;  
-            printf("Przegrana!\n");
-            restart_game();
-        }
-        else if(opt == 4){
-            printf("%s zakonczyl gre, mozesz poczekac na kolejnego gracza\n", enemy_address);
-
-            score = 0;
-            first_move = 1;
-            is_started = 0;
-            connected = 0;
-            is_host = 1;
-        }
 
     }        
 
@@ -376,9 +442,14 @@ int setup_server(char *address, char *port){
     me_addr.sin_port = htons(atoi(port));
     me_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    if (inet_pton(AF_INET, address, &naddr) < 1){
-        perror("inet");
-        exit(1);
+    if (inet_pton(AF_INET, address, &naddr) != 1) {
+        struct hostent *host = gethostbyname(address);
+        if (host == NULL) {
+            fprintf(stderr, "Nie można rozwiązać nazwy domeny.\n");
+            exit(1);
+        }
+        naddr = *(struct in_addr *) host->h_addr;
+	inet_ntop(AF_INET, &host->h_addr, enemy_address, INET_ADDRSTRLEN);
     }
 
 
@@ -422,7 +493,15 @@ int setup_server(char *address, char *port){
  
 }
 
+void signal_handler(int signal){
+	int status;
+	wait(&status);
+	if(status == 1){
+		currFlag = 1;		
+		kill(pid2, 9);
+	}
 
+}
 
 int main(int argc, char* argv[]){
    
@@ -430,7 +509,7 @@ int main(int argc, char* argv[]){
         fprintf(stderr, "usage: ip port\n");
         exit(1);
     } 
-    
+  
     srand(time(NULL));
     char opcja[BUFLEN];
     
@@ -438,9 +517,13 @@ int main(int argc, char* argv[]){
 
     printf("Gra w 50, wersja B \n");
     
-    printf("Rozpoczynam gre z %s. Napisz ""koniec"" by zakonczyc lub ""wynik"" by wyswietlic aktualny wynik \n", argv[1]); 
     sockfd = setup_server(argv[1], argv[2]);
-    
+    printf("Rozpoczynam gre z %s. Napisz ""koniec"" by zakonczyc lub ""wynik"" by wyswietlic aktualny wynik \n", enemy_address); 
+
+
+    signal(1, signal_handler);
+    signal(2, signal_handler);
+
     while(1){
         
         if(connected == 0){
@@ -451,7 +534,7 @@ int main(int argc, char* argv[]){
                     send_nickname(sockfd, argv[3]);
                 }
                 else{
-                    send_nickname(sockfd, argv[1]);
+                    send_nickname(sockfd, nickname_ip);
                 }
                 receive_nickname(sockfd);
             }else{
@@ -460,7 +543,7 @@ int main(int argc, char* argv[]){
                     send_nickname(sockfd, argv[3]);
                 }
                 else{
-                    send_nickname(sockfd, argv[1]);
+                    send_nickname(sockfd, nickname_ip);
                 }
             }
         }
@@ -481,7 +564,8 @@ int main(int argc, char* argv[]){
             }
         }
 
-        get_request_and_respond(sockfd);        
+        //get_request_and_respond(sockfd);
+	v2(sockfd);        
     }
 
 
